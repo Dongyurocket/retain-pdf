@@ -1,5 +1,7 @@
 # RetainPDF：PDF 保留排版翻译工具
 
+> 本仓库是 [wxyhgk/retain-pdf](https://github.com/wxyhgk/retain-pdf) 的个人 Fork：发布包与桌面端更新检测由本仓库维护，相对上游的变更记录见 [CHANGELOG.md](CHANGELOG.md)。
+
 <p align="center">
   <img src="resources/brand/RetainPDF-github.svg" alt="RetainPDF" width="320" />
 </p>
@@ -61,7 +63,7 @@ RetainPDF 从一开始就是要解决各类 PDF 的保留排版翻译问题，�
 
 ## 快速开始
 
-如果你只是想直接使用，先去 [GitHub Releases](https://github.com/wxyhgk/retain-pdf/releases) 下载对应平台的发布包：
+如果你只是想直接使用，先去 [GitHub Releases](https://github.com/Dongyurocket/retain-pdf/releases) 下载对应平台的发布包：
 
 - Windows：优先下载 `Setup.exe`
 - macOS：下载 `.dmg`
