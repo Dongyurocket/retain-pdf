@@ -13,7 +13,7 @@ export function AppTopBar({ activeTab, onTabChange }) {
       <header className="topbar library-topbar">
         <a
           className="hero-repo-link library-brand-link"
-          href="https://github.com/wxyhgk/retain-pdf"
+          href="https://github.com/Dongyurocket/retain-pdf"
           target="_blank"
           rel="noopener noreferrer"
         >

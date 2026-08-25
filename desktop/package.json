@@ -1,9 +1,9 @@
 {
   "name": "retain-pdf-desktop",
-  "version": "4.1.10",
+  "version": "4.1.11",
   "private": true,
   "description": "RetainPDF desktop wrapper",
-  "homepage": "https://github.com/wxyhgk/retain-pdf",
+  "homepage": "https://github.com/Dongyurocket/retain-pdf",
   "author": {
     "name": "wxyhgk",
     "email": "wxyhgk@qq.com"
