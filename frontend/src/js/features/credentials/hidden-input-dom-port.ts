@@ -13,12 +13,17 @@ function hiddenInputValue(id = "") {
   return ($(id) as HTMLInputElement | null)?.value || "";
 }
 
-export function readHiddenCredentialDomInputs(): CredentialsFields {
-  return normalizeBrowserStoredConfig({
+export function readHiddenCredentialDomInputs(): Partial<CredentialsFields> {
+  const normalized = normalizeBrowserStoredConfig({
     ocrProvider: hiddenInputValue(HIDDEN_CREDENTIAL_IDS.ocrProvider) || DEFAULT_OCR_PROVIDER,
     paddleToken: hiddenInputValue(HIDDEN_CREDENTIAL_IDS.paddleToken),
+    mineruToken: hiddenInputValue(HIDDEN_CREDENTIAL_IDS.mineruToken),
     modelApiKey: hiddenInputValue(HIDDEN_CREDENTIAL_IDS.modelApiKey),
-  }) as CredentialsFields;
+  }) as Partial<CredentialsFields>;
+  // ocrOptions 不桥接隐藏 input：抹掉自动填充的默认值，让 store action 的
+  // 「缺 ocrOptions 键则保留现有值」逻辑生效（见 credentials/state.ts）。
+  delete normalized.ocrOptions;
+  return normalized;
 }
 
 export function normalizeHiddenCredentialPayload(
@@ -30,6 +35,7 @@ export function normalizeHiddenCredentialPayload(
     : {
         ocrProvider: DEFAULT_OCR_PROVIDER,
         paddleToken: "",
+        mineruToken: "",
         modelApiKey: legacyModelApiKey,
       };
 }
@@ -44,16 +50,21 @@ export function mirrorCredentialsToHiddenInputs(
   const credentials = normalizeHiddenCredentialPayload(credentialsOrLegacy, legacyModelApiKey);
   const ocrProvider = normalizeOcrProvider(credentials.ocrProvider);
   const paddleToken = credentials.paddleToken || "";
+  const mineruToken = credentials.mineruToken || "";
   const modelApiKey = credentials.modelApiKey || "";
 
   const providerInput = $(HIDDEN_CREDENTIAL_IDS.ocrProvider) as HTMLInputElement | null;
   const paddleInput = $(HIDDEN_CREDENTIAL_IDS.paddleToken) as HTMLInputElement | null;
+  const mineruInput = $(HIDDEN_CREDENTIAL_IDS.mineruToken) as HTMLInputElement | null;
   const apiKeyInput = $(HIDDEN_CREDENTIAL_IDS.modelApiKey) as HTMLInputElement | null;
   if (providerInput) {
     providerInput.value = ocrProvider;
   }
   if (paddleInput) {
     paddleInput.value = paddleToken;
+  }
+  if (mineruInput) {
+    mineruInput.value = mineruToken;
   }
   if (apiKeyInput) {
     apiKeyInput.value = modelApiKey;
@@ -75,5 +86,6 @@ export function bindHiddenCredentialInputPersistence({
   };
   $(HIDDEN_CREDENTIAL_IDS.ocrProvider)?.addEventListener("input", saveCurrentBrowserCredentials);
   $(HIDDEN_CREDENTIAL_IDS.paddleToken)?.addEventListener("input", saveCurrentBrowserCredentials);
+  $(HIDDEN_CREDENTIAL_IDS.mineruToken)?.addEventListener("input", saveCurrentBrowserCredentials);
   $(HIDDEN_CREDENTIAL_IDS.modelApiKey)?.addEventListener("input", saveCurrentBrowserCredentials);
 }

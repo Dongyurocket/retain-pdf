@@ -14,6 +14,7 @@ function createDesktopConfigStore(app, options = {}) {
       ocrProvider: DEFAULT_OCR_PROVIDER,
       mineruToken: "",
       paddleToken: "",
+      ocrOptions: {},
       modelApiKey: "",
       model: DEFAULT_MODEL,
       baseUrl: DEFAULT_BASE_URL,
@@ -85,6 +86,7 @@ function buildBrowserConfig(config) {
     ocrProvider: config.ocrProvider || DEFAULT_OCR_PROVIDER,
     mineruToken: config.mineruToken || "",
     paddleToken: config.paddleToken || "",
+    ocrOptions: normalizeOcrOptions(config.ocrOptions),
     modelApiKey: config.modelApiKey || "",
   };
 }
@@ -94,7 +96,20 @@ function hasOwn(target, key) {
 }
 
 function normalizeOcrProvider(value) {
-  return value === "paddle" ? "paddle" : DEFAULT_OCR_PROVIDER;
+  return value === "mineru" || value === "paddle" ? value : DEFAULT_OCR_PROVIDER;
+}
+
+function normalizeOcrOptions(value) {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return {};
+  }
+  const normalized = {};
+  for (const [providerId, options] of Object.entries(value)) {
+    if (typeof options === "object" && options !== null && !Array.isArray(options)) {
+      normalized[providerId] = { ...options };
+    }
+  }
+  return normalized;
 }
 
 function normalizeTrimmedString(value, fallback = "") {
@@ -105,6 +120,7 @@ function normalizeDesktopConfig(raw = {}) {
   const defaults = {
     mineruToken: "",
     paddleToken: "",
+    ocrOptions: {},
     modelApiKey: "",
     model: DEFAULT_MODEL,
     baseUrl: DEFAULT_BASE_URL,
@@ -114,6 +130,7 @@ function normalizeDesktopConfig(raw = {}) {
     ocrProvider: normalizeOcrProvider(raw.ocrProvider),
     mineruToken: normalizeTrimmedString(raw.mineruToken, defaults.mineruToken),
     paddleToken: normalizeTrimmedString(raw.paddleToken, defaults.paddleToken),
+    ocrOptions: normalizeOcrOptions(raw.ocrOptions),
     modelApiKey: normalizeTrimmedString(raw.modelApiKey, defaults.modelApiKey),
     model: normalizeTrimmedString(raw.model, defaults.model),
     baseUrl: normalizeTrimmedString(raw.baseUrl, defaults.baseUrl),
@@ -133,6 +150,7 @@ function mergeDesktopConfig(currentConfig, payload = {}) {
     "ocrProvider",
     "mineruToken",
     "paddleToken",
+    "ocrOptions",
     "modelApiKey",
     "model",
     "baseUrl",

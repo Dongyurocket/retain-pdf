@@ -1,6 +1,7 @@
 import {
   getOcrProviderDefinition,
   normalizeOcrProvider,
+  OCR_PROVIDER_DEFINITIONS,
   TRANSLATION_PROVIDER_DEFINITION,
 } from "../../config/providers.js";
 import {
@@ -116,6 +117,7 @@ export interface MountBrowserCredentialsFeatureOptions {
   state?: unknown;
   applyHiddenCredentialInputs?: (credentials?: Partial<CredentialsFields> | unknown) => unknown;
   defaultPaddleToken?: () => string;
+  defaultMineruToken?: () => string;
   defaultModelApiKey?: () => string;
   defaultModelBaseUrl?: () => string;
   getTaskOptions?: () => Record<string, unknown> | unknown;
@@ -131,6 +133,7 @@ export interface MountBrowserCredentialsFeatureOptions {
     apiPrefix?: unknown,
     providerId?: unknown,
     token?: unknown,
+    providerOptions?: Record<string, string | boolean> | unknown,
   ) => Promise<ProviderValidationResult | unknown> | ProviderValidationResult | unknown;
   validateDeepSeekToken?: (
     apiPrefix?: unknown,
@@ -165,6 +168,7 @@ export function mountBrowserCredentialsFeature({
   state,
   applyHiddenCredentialInputs,
   defaultPaddleToken,
+  defaultMineruToken,
   defaultModelApiKey,
   defaultModelBaseUrl,
   getTaskOptions,
@@ -221,8 +225,8 @@ export function mountBrowserCredentialsFeature({
     viewPort.syncOcrProviderControls(activeProvider);
   }
 
-  function readCurrentCredentials() {
-    return credentialsStatePort.getCredentials?.() || readHiddenCredentialInputs();
+  function readCurrentCredentials(): CredentialsFields {
+    return (credentialsStatePort.getCredentials?.() || readHiddenCredentialInputs()) as CredentialsFields;
   }
 
   function syncBrowserDialogFromCredentialState() {
@@ -233,7 +237,9 @@ export function mountBrowserCredentialsFeature({
       defaultModelApiKey,
       elementsPort: dialogElementsPort,
     });
-    viewPort.setOcrValidationMessage("", "", "paddle");
+    for (const definition of OCR_PROVIDER_DEFINITIONS) {
+      viewPort.setOcrValidationMessage("", "", definition.id);
+    }
     viewPort.setDeepSeekValidationMessage("", "");
     viewPort.setDeepSeekTopUpVisible(false);
     balanceState.resetDeepSeekBalance();
@@ -243,6 +249,7 @@ export function mountBrowserCredentialsFeature({
   function hasBrowserCredentials() {
     return Boolean(credentialsStatePort.hasComplete?.({
       defaultPaddleToken,
+      defaultMineruToken,
     }));
   }
 
@@ -279,6 +286,7 @@ export function mountBrowserCredentialsFeature({
       providerId: provider,
       credentials: readCurrentCredentials(),
       defaultPaddleToken,
+      defaultMineruToken,
       validateOcrToken,
       setOcrValidationMessage: viewPort.setOcrValidationMessage,
       showResult: !runtimeEnv.isDesktopMode(),
@@ -332,11 +340,13 @@ export function mountBrowserCredentialsFeature({
 
   async function handleBrowserOcrValidate() {
     const provider = currentOcrProvider();
+    const values = readCredentialDialogValues({ elementsPort: dialogElementsPort });
     await runOcrTokenValidation({
       apiPrefix,
       state,
       providerId: provider,
-      token: ocrTokenFromDialogValues(readCredentialDialogValues({ elementsPort: dialogElementsPort })),
+      token: ocrTokenFromDialogValues(values, provider),
+      providerOptions: values.ocrOptions?.[provider],
       validateOcrToken,
       setOcrValidationMessage: viewPort.setOcrValidationMessage,
       showResult: true,
@@ -382,9 +392,14 @@ export function mountBrowserCredentialsFeature({
     const values = {
       ...raw,
       paddleToken: `${raw.paddleToken || ""}`.trim() || `${existing.paddleToken || ""}`.trim(),
+      mineruToken: `${raw.mineruToken || ""}`.trim() || `${existing.mineruToken || ""}`.trim(),
+      ocrOptions: {
+        ...(existing.ocrOptions || {}),
+        ...(raw.ocrOptions || {}),
+      },
       modelApiKey: `${raw.modelApiKey || ""}`.trim() || `${existing.modelApiKey || ""}`.trim(),
     };
-    const ocrToken = ocrTokenFromDialogValues(values);
+    const ocrToken = ocrTokenFromDialogValues(values, currentOcrProvider());
     const modelApiKey = `${values.modelApiKey || ""}`.trim();
     if (!ocrToken || !modelApiKey) {
       if (!ocrToken) {
@@ -399,7 +414,9 @@ export function mountBrowserCredentialsFeature({
 
     const nextCredentials = {
       ocrProvider: currentOcrProvider(),
-      paddleToken: ocrToken,
+      paddleToken: values.paddleToken,
+      mineruToken: values.mineruToken,
+      ocrOptions: values.ocrOptions,
       modelApiKey,
     };
 
@@ -424,7 +441,7 @@ export function mountBrowserCredentialsFeature({
               /* ignore connectivity on save */
             }
           },
-          values: { ...values, paddleToken: ocrToken, modelApiKey },
+          values: { ...values, modelApiKey },
           setupModePort,
         });
       } else {
@@ -435,11 +452,18 @@ export function mountBrowserCredentialsFeature({
           defaultModelBaseUrl,
           saveTaskOptions,
           saveBrowserStoredConfig,
-          values: { ...values, paddleToken: ocrToken, modelApiKey },
+          values: { ...values, modelApiKey },
         });
       }
-      // 再次保证内存态与刚写入的 next 一致
-      credentialsStatePort.setCredentials?.(nextCredentials);
+      // 再次保证内存态与刚写入的 next 一致。
+      // 但 await 持久化期间用户可能已切换 OCR 引擎（changeProvider 直接
+      // patch store）——provider 以最新状态为准，不用保存时的旧快照覆盖，
+      // 否则异步落盘的第二笔会把刚切的引擎悄悄写回去。
+      const latestCredentials: Partial<CredentialsFields> = credentialsStatePort.getCredentials?.() || {};
+      credentialsStatePort.setCredentials?.({
+        ...nextCredentials,
+        ocrProvider: latestCredentials.ocrProvider || nextCredentials.ocrProvider,
+      });
     } catch (error) {
       const message = (error as { message?: string })?.message || String(error);
       viewPort.setDialogStatus(message, "error");
@@ -461,6 +485,10 @@ export function mountBrowserCredentialsFeature({
     resetPaddleValidation: () => {
       credentialsStatePort.resetOcrValidationCache?.();
       viewPort.setOcrValidationMessage("", "", "paddle");
+    },
+    resetOcrValidation: (providerId = "") => {
+      credentialsStatePort.resetOcrValidationCache?.();
+      viewPort.setOcrValidationMessage("", "", normalizeOcrProvider(providerId));
     },
     resetDeepSeekValidation: () => {
       viewPort.setDeepSeekValidationMessage("", "");

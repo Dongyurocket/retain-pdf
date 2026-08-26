@@ -60,6 +60,7 @@ export type OpenCredentialDialogOptions = {
 
 export type BindCredentialViewEventsOptions = {
   resetPaddleValidation?: () => void;
+  resetOcrValidation?: (providerId?: string) => void;
   resetDeepSeekValidation?: () => void;
   validateOcr?: () => void;
   validateDeepSeek?: () => void;

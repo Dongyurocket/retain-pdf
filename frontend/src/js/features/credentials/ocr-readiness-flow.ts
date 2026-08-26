@@ -11,6 +11,7 @@ export async function ensureOcrCredentialValidationReady({
   providerId,
   credentials,
   defaultPaddleToken,
+  defaultMineruToken,
   validateOcrToken,
   setOcrValidationMessage,
   showResult,
@@ -20,6 +21,7 @@ export async function ensureOcrCredentialValidationReady({
   const token = credentialOcrToken(credentials, {
     providerId: definition.id,
     defaultPaddleToken,
+    defaultMineruToken,
   }).trim();
 
   if (!token) {
@@ -52,6 +54,7 @@ export async function ensureOcrCredentialValidationReady({
     credentialsStatePort,
     providerId: definition.id,
     token,
+    providerOptions: credentials?.ocrOptions?.[definition.id],
     validateOcrToken,
     setOcrValidationMessage,
     showResult,

@@ -43,6 +43,8 @@ export async function persistDesktopCredentialsFromDialog({
 }: any) {
   const provider = currentOcrProvider();
   const paddleToken = values.paddleToken;
+  const mineruToken = values.mineruToken;
+  const ocrOptions = values.ocrOptions;
   // 与浏览器一致：只存用户在设置里填的 Key，不从 runtime 静默回填
   void defaultModelApiKey;
   const modelApiKey = `${values.modelApiKey || ""}`.trim();
@@ -50,6 +52,8 @@ export async function persistDesktopCredentialsFromDialog({
     {
       ocrProvider: provider,
       paddleToken,
+      mineruToken,
+      ocrOptions,
       modelApiKey,
       markConfigured: setupModePort.currentSetupMode(),
     },

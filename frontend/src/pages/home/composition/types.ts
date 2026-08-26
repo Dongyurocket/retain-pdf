@@ -170,12 +170,14 @@ export type CredentialsElementsRef = {
   modelNameInput: HTMLInputElement | null;
   mathModeSelect: HTMLSelectElement | null;
   tokenInputs: Record<string, HTMLInputElement | null | undefined>;
+  optionInputs: Record<string, Record<string, HTMLInputElement | HTMLSelectElement | null | undefined>>;
 };
 
 export type CredentialsViewBag = {
   store: AppStore;
   handlersRef: { current: HandlersBag | null };
   tokenInputRef: (providerId: string) => (node: HTMLInputElement | null) => void;
+  optionInputRef: (providerId: string, optionKey: string) => (node: HTMLInputElement | HTMLSelectElement | null) => void;
   elementsRef: CredentialsElementsRef;
   elementsPort?: unknown;
   viewPort?: unknown;

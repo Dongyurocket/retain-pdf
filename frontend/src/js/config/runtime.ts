@@ -124,6 +124,10 @@ export function defaultPaddleToken() {
   return typeof runtimeConfig.paddleToken === "string" ? runtimeConfig.paddleToken : "";
 }
 
+export function defaultMineruToken() {
+  return typeof runtimeConfig.mineruToken === "string" ? runtimeConfig.mineruToken : "";
+}
+
 export function defaultPaddleApiUrl() {
   return typeof runtimeConfig.paddleApiUrl === "string" ? runtimeConfig.paddleApiUrl.trim() : "";
 }

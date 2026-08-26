@@ -5,6 +5,7 @@
 export { API_PREFIX } from "../../../js/config/api-constants.js";
 export {
   apiBase,
+  defaultMineruToken,
   defaultModelApiKey,
   defaultModelBaseUrl,
   defaultModelName,
@@ -30,6 +31,9 @@ export {
 export { openDesktopOutputDirectory } from "../../../js/config/desktop-persistence.js";
 export { DEFAULT_MODEL_VERSION } from "../../../js/config/model-constants.js";
 export {
+  getOcrProviderDefinition,
+  normalizeOcrOptions,
+  normalizeOcrProvider,
   OCR_PROVIDER_DEFINITIONS,
   TRANSLATION_PROVIDER_DEFINITION,
 } from "../../../js/config/providers.js";
@@ -178,6 +182,7 @@ export {
 export {
   validateDeepSeekToken,
   queryDeepSeekBalance,
+  validateMineruToken,
   validatePaddleToken,
 } from "../../../js/api/providers.js";
 export {

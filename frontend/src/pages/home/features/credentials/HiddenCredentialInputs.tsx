@@ -38,6 +38,7 @@ export function HiddenCredentialInputs() {
     <>
       <input id={HIDDEN_IDS.ocrProvider} name="ocr_provider" type="hidden" value={credentials.ocrProvider || "paddle"} readOnly />
       <input id={HIDDEN_IDS.paddleToken} name="paddle_token" type="hidden" value={credentials.paddleToken || ""} readOnly />
+      <input id={HIDDEN_IDS.mineruToken} name="mineru_token" type="hidden" value={credentials.mineruToken || ""} readOnly />
       <input id={HIDDEN_IDS.modelApiKey} name="api_key" type="hidden" value={credentials.modelApiKey || ""} readOnly />
     </>
   );

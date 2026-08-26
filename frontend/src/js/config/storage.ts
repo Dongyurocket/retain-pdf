@@ -2,12 +2,17 @@ import {
   BROWSER_CONFIG_STORAGE_KEY,
   DEVELOPER_CONFIG_STORAGE_KEY,
 } from "./storage-keys.js";
-import { normalizeOcrProvider } from "./providers.js";
+import { normalizeOcrOptionsMap, normalizeOcrProvider } from "./providers.js";
+
+/** Per-provider OCR options keyed by provider id (paddle/mineru). */
+export type OcrOptionsMap = Record<string, Record<string, string | boolean>>;
 
 /** Browser-local credential / OCR settings (localStorage + desktop shadow). */
 export interface BrowserStoredConfig {
   ocrProvider: string;
   paddleToken: string;
+  mineruToken: string;
+  ocrOptions: OcrOptionsMap;
   modelApiKey: string;
   [key: string]: unknown;
 }
@@ -26,6 +31,7 @@ export interface DeveloperStoredConfig {
 export interface RuntimeConfig {
   ocrProvider?: string;
   paddleToken?: string;
+  mineruToken?: string;
   modelApiKey?: string;
   model?: string;
   baseUrl?: string;
@@ -79,6 +85,8 @@ export function normalizeBrowserStoredConfig(
   return {
     ocrProvider: normalizeOcrProvider(source.ocrProvider),
     paddleToken: typeof source.paddleToken === "string" ? source.paddleToken : "",
+    mineruToken: typeof source.mineruToken === "string" ? source.mineruToken : "",
+    ocrOptions: normalizeOcrOptionsMap(source.ocrOptions) as OcrOptionsMap,
     modelApiKey: typeof source.modelApiKey === "string" ? source.modelApiKey : "",
   };
 }
@@ -96,6 +104,8 @@ export function desktopRuntimeToBrowserConfig(
   return normalizeBrowserStoredConfig({
     ocrProvider: source.ocrProvider as string | undefined,
     paddleToken: source.paddleToken as string | undefined,
+    mineruToken: source.mineruToken as string | undefined,
+    ocrOptions: source.ocrOptions,
     modelApiKey: source.modelApiKey as string | undefined,
   });
 }
@@ -111,6 +121,7 @@ export function buildRuntimeConfig(
     ...(isObject(baseRuntimeConfig) ? (baseRuntimeConfig as RuntimeConfig) : {}),
     ocrProvider: nextBrowserConfig.ocrProvider,
     paddleToken: nextBrowserConfig.paddleToken,
+    mineruToken: nextBrowserConfig.mineruToken,
     modelApiKey: nextBrowserConfig.modelApiKey,
     developerConfig: nextDeveloperConfig,
   };

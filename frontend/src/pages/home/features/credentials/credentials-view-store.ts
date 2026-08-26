@@ -134,11 +134,14 @@ export function createCredentialsViewFeature({
     modelNameInput: null,
     mathModeSelect: null,
     tokenInputs: {}, // { [providerId]: HTMLInputElement }
+    optionInputs: {}, // { [providerId]: { [optionKey]: HTMLInputElement | HTMLSelectElement } }
   };
 
   function elements() {
     return {
       paddleInput: elementsRef.tokenInputs.paddle || null,
+      mineruInput: elementsRef.tokenInputs.mineru || null,
+      optionInputs: elementsRef.optionInputs,
       apiKeyInput: elementsRef.apiKeyInput,
       modelBaseUrlInput: elementsRef.modelBaseUrlInput,
       modelNameInput: elementsRef.modelNameInput,
@@ -149,6 +152,14 @@ export function createCredentialsViewFeature({
   function tokenInputRef(providerId: string) {
     return (node: HTMLInputElement | null) => {
       elementsRef.tokenInputs[providerId] = node || null;
+    };
+  }
+
+  function optionInputRef(providerId: string, optionKey: string) {
+    return (node: HTMLInputElement | HTMLSelectElement | null) => {
+      const bucket = elementsRef.optionInputs[providerId] || {};
+      bucket[optionKey] = node || null;
+      elementsRef.optionInputs[providerId] = bucket;
     };
   }
 
@@ -216,6 +227,7 @@ export function createCredentialsViewFeature({
     elementsRef,
     handlersRef,
     tokenInputRef,
+    optionInputRef,
     viewPort,
   };
 }

@@ -10,6 +10,8 @@ export interface DesktopConfigPayload {
   closeToTrayHintShown?: boolean;
   ocrProvider?: string;
   paddleToken?: string;
+  mineruToken?: string;
+  ocrOptions?: Record<string, Record<string, string | boolean>>;
   modelApiKey?: string;
   browserConfig?: Partial<BrowserStoredConfig> | BrowserStoredConfig;
   developerConfig?: DeveloperStoredConfig;

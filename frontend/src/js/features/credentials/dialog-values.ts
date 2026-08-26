@@ -1,8 +1,12 @@
+import { normalizeOcrOptions, normalizeOcrProvider } from "../../config/providers.js";
 import { createCredentialDialogElementsPort } from "./dialog-elements-port.js";
 
 /** Values read from the browser credential dialog inputs. */
 export interface CredentialDialogValues {
   paddleToken: string;
+  mineruToken: string;
+  /** { [providerId]: { [optionKey]: string | boolean } } — OCR provider 选项草稿 */
+  ocrOptions: Record<string, Record<string, string | boolean>>;
   modelApiKey: string;
   modelBaseUrl: string;
   modelName: string;
@@ -11,6 +15,9 @@ export interface CredentialDialogValues {
 
 export interface CredentialDialogElementsLike {
   paddleInput?: { value?: string } | null;
+  mineruInput?: { value?: string } | null;
+  /** { [providerId]: { [optionKey]: HTMLInputElement | HTMLSelectElement | null } } */
+  optionInputs?: Record<string, Record<string, { value?: string; checked?: boolean; type?: string } | null>>;
   apiKeyInput?: { value?: string } | null;
   modelBaseUrlInput?: { value?: string } | null;
   modelNameInput?: { value?: string } | null;
@@ -24,7 +31,7 @@ export interface ReadCredentialDialogValuesOptions {
 }
 
 export interface BuildBrowserCredentialConfigOptions {
-  values: Pick<CredentialDialogValues, "paddleToken" | "modelApiKey">;
+  values: Pick<CredentialDialogValues, "paddleToken" | "mineruToken" | "ocrOptions" | "modelApiKey">;
   currentOcrProvider: () => string;
   defaultModelApiKey?: () => string;
 }
@@ -34,11 +41,34 @@ export interface BuildTaskOptionsFromDialogValuesOptions {
   defaultModelBaseUrl?: () => string;
 }
 
+function readOptionInputs(
+  optionInputs: CredentialDialogElementsLike["optionInputs"] = {},
+): Record<string, Record<string, string | boolean>> {
+  const values: Record<string, Record<string, string | boolean>> = {};
+  for (const [providerId, inputs] of Object.entries(optionInputs || {})) {
+    const draft: Record<string, string | boolean> = {};
+    for (const [key, node] of Object.entries(inputs || {})) {
+      if (!node) {
+        continue;
+      }
+      if (node.type === "checkbox") {
+        draft[key] = Boolean(node.checked);
+      } else if (typeof node.value === "string") {
+        draft[key] = node.value.trim();
+      }
+    }
+    values[providerId] = normalizeOcrOptions(providerId, draft);
+  }
+  return values;
+}
+
 export function readCredentialDialogValues({
   elementsPort = createCredentialDialogElementsPort(),
 }: ReadCredentialDialogValuesOptions = {}): CredentialDialogValues {
   const {
     paddleInput,
+    mineruInput,
+    optionInputs,
     apiKeyInput,
     modelBaseUrlInput,
     modelNameInput,
@@ -46,6 +76,8 @@ export function readCredentialDialogValues({
   } = elementsPort.elements();
   return {
     paddleToken: paddleInput?.value?.trim() || "",
+    mineruToken: mineruInput?.value?.trim() || "",
+    ocrOptions: readOptionInputs(optionInputs),
     modelApiKey: apiKeyInput?.value?.trim() || "",
     modelBaseUrl: modelBaseUrlInput?.value?.trim() || "",
     modelName: modelNameInput?.value?.trim() || "",
@@ -62,6 +94,8 @@ export function buildBrowserCredentialConfig({
   return {
     ocrProvider: currentOcrProvider(),
     paddleToken: values.paddleToken,
+    mineruToken: values.mineruToken,
+    ocrOptions: values.ocrOptions,
     modelApiKey: `${values.modelApiKey || ""}`.trim(),
   };
 }
@@ -78,8 +112,12 @@ export function buildTaskOptionsFromDialogValues({
   };
 }
 
+/** 按 provider 取对话框里的 OCR token（缺省按 paddle 兼容旧调用）。 */
 export function ocrTokenFromDialogValues(
-  values: Partial<Pick<CredentialDialogValues, "paddleToken">> = {},
+  values: Partial<Pick<CredentialDialogValues, "paddleToken" | "mineruToken">> = {},
+  providerId = "",
 ) {
-  return values.paddleToken;
+  return normalizeOcrProvider(providerId) === "mineru"
+    ? values.mineruToken
+    : values.paddleToken;
 }

@@ -27,6 +27,7 @@ export function useCredentialsController() {
     dialogStore,
     handlers: view.handlersRef.current,
     tokenInputRef: view.tokenInputRef,
+    optionInputRef: view.optionInputRef,
     elementsRef: view.elementsRef,
   };
 }

@@ -38,10 +38,12 @@ export interface RunOcrTokenValidationOptions {
   credentialsStatePort?: CredentialsStatePortLike | CredentialsStatePort;
   providerId?: string;
   token?: string;
+  providerOptions?: Record<string, string | boolean>;
   validateOcrToken?: (
     apiPrefix?: unknown,
     providerId?: unknown,
     token?: unknown,
+    providerOptions?: Record<string, string | boolean> | unknown,
   ) => Promise<ProviderValidationResult | unknown> | ProviderValidationResult | unknown;
   setOcrValidationMessage?: (message?: string, tone?: string, providerId?: string) => void;
   showResult?: boolean;
@@ -96,6 +98,7 @@ export async function runOcrTokenValidation({
   credentialsStatePort,
   providerId,
   token,
+  providerOptions,
   validateOcrToken,
   setOcrValidationMessage,
   showResult = true,
@@ -129,7 +132,12 @@ export async function runOcrTokenValidation({
     setOcrValidationMessage(`正在检测 ${definition.label} Token…`, "", definition.id);
   }
   try {
-    const result = asValidationResult(await validateOcrToken(apiPrefix, definition.id, normalizedToken));
+    const result = asValidationResult(await validateOcrToken(
+      apiPrefix,
+      definition.id,
+      normalizedToken,
+      providerOptions,
+    ));
     setOcrValidationRuntime({ state, credentialsStatePort, legacyRuntimePort }, {
       provider: definition.id,
       token: normalizedToken,

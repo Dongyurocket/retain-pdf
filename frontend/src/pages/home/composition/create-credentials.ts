@@ -2,9 +2,12 @@
 
 import {
   API_PREFIX,
+  defaultMineruToken,
   defaultModelApiKey,
   defaultModelBaseUrl,
+  defaultPaddleApiUrl,
   defaultPaddleToken,
+  normalizeOcrProvider,
   saveBrowserStoredConfig,
   savePersistedBrowserStoredConfig,
   savePersistedDeveloperStoredConfig,
@@ -14,6 +17,7 @@ import {
   readHiddenCredentialDomInputs,
   createCredentialRuntimeEnvPort,
   mountBrowserCredentialsFeature,
+  validateMineruToken,
   validatePaddleToken,
 } from "./external.js";
 import { createCredentialsViewFeature } from "../features/credentials/credentials-view-store.js";
@@ -83,12 +87,25 @@ export function createCredentials({
 
   async function validateCredentialOcrToken(
     apiPrefixArg: unknown,
-    _providerId: unknown,
+    providerId: unknown,
     token: unknown,
+    providerOptions: Record<string, string | boolean> | unknown = {},
   ) {
+    const options = providerOptions && typeof providerOptions === "object"
+      ? providerOptions as Record<string, unknown>
+      : {};
+    if (normalizeOcrProvider(providerId) === "mineru") {
+      return validateMineruToken(apiPrefixArg, {
+        mineru_token: token,
+        model_version: `${options.modelVersion || ""}`.trim(),
+      });
+    }
+    const paddleBaseUrl = `${options.paddleApiUrl || ""}`.trim()
+      || defaultPaddleApiUrl()
+      || "https://paddleocr.aistudio-app.com";
     return validatePaddleToken(apiPrefixArg, {
       paddle_token: token,
-      base_url: "https://paddleocr.aistudio-app.com",
+      base_url: paddleBaseUrl,
     });
   }
 
@@ -99,6 +116,7 @@ export function createCredentials({
     credentialsStatePort,
     applyHiddenCredentialInputs: credentialsStatePort.setCredentials,
     defaultPaddleToken,
+    defaultMineruToken,
     defaultModelApiKey,
     defaultModelBaseUrl,
     getTaskOptions: () => features.workflowFeature.developerConfigWithDefaults() || {},

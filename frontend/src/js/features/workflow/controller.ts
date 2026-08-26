@@ -26,6 +26,7 @@ import { defaultWorkflowConfigPort } from "./config-port.js";
 export interface WorkflowSubmitValues {
   ocrProvider?: string;
   ocrToken?: string;
+  ocrOptions?: Record<string, Record<string, string | boolean>>;
   modelApiKey?: string;
   selectedGlossaryId?: string;
 }
@@ -68,6 +69,7 @@ export interface WorkflowViewPortLike {
   readSubmitValues?: (options?: {
     defaultOcrProvider?: string;
     defaultPaddleToken?: string;
+    defaultMineruToken?: string;
     defaultModelApiKey?: string;
   }) => WorkflowSubmitValues;
 }
@@ -102,6 +104,7 @@ export interface MountWorkflowFeatureOptions {
   defaultModelBaseUrl: () => string;
   defaultPaddleApiUrl: () => string;
   defaultPaddleToken: () => string;
+  defaultMineruToken?: () => string;
   defaultOcrProvider: () => string;
   defaultModelApiKey: () => string;
   defaultFileLabel?: string;
@@ -148,6 +151,7 @@ export function mountWorkflowFeature({
   defaultModelBaseUrl,
   defaultPaddleApiUrl,
   defaultPaddleToken,
+  defaultMineruToken = () => "",
   defaultOcrProvider,
   defaultModelApiKey,
   defaultFileLabel = "选择 PDF",
@@ -357,6 +361,7 @@ export function mountWorkflowFeature({
     return readSubmitValues?.({
       defaultOcrProvider: defaultOcrProvider(),
       defaultPaddleToken: defaultPaddleToken(),
+      defaultMineruToken: defaultMineruToken(),
       defaultModelApiKey: defaultModelApiKey(),
     }) || {};
   }
@@ -366,6 +371,7 @@ export function mountWorkflowFeature({
       pageRanges,
       ocrProvider: submitValues.ocrProvider,
       ocrToken: submitValues.ocrToken,
+      ocrOptions: submitValues.ocrOptions,
       defaultPaddleApiUrl,
       constants,
     });

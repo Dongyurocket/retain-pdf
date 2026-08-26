@@ -5,6 +5,24 @@
 
 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [SemVer](https://semver.org/lang/zh-CN/)。
 
+## [v4.1.12] - 2026-08-26
+
+### 新增
+
+- **桌面版 OCR 引擎可选：MinerU / PaddleOCR（默认 PaddleOCR）**：设置 → API 设置 → OCR 卡片新增引擎选择器，两个引擎的 token 独立保存、互不覆盖。PaddleOCR 暴露 API 地址（留空用公共端点）与模型（默认 PaddleOCR-VL-1.6）；MinerU 暴露模型版本（默认 vlm）、文档语言（默认 ch）与公式/表格识别开关（默认开启，适配扫描 PDF + 行内公式场景）。Token 校验按引擎分发到对应端点（`providers/paddle/validate-token` / `providers/mineru/validate-token`），提交任务时按引擎组装 `ocr` 分组参数。网页版共享同一设置界面，同步获得该能力。
+
+### 修复
+
+- **凭据保存与引擎切换的竞态**：保存的异步落盘完成后会用保存时的旧快照二次回写内存态，期间切换 OCR 引擎会被旧值覆盖。二次回写时引擎以最新状态为准。
+
+### 安装包
+
+- Windows：`RetainPDF-Windows-4.1.12-Setup.exe`（NSIS 安装包）
+- macOS：`RetainPDF-Mac-4.1.12.dmg`（Apple Silicon）
+- Linux：`RetainPDF-Linux-4.1.12.deb`
+
+[v4.1.12]: https://github.com/Dongyurocket/retain-pdf/releases/tag/v4.1.12
+
 ## [v4.1.11] - 2026-08-25
 
 首个 Fork 自主发布版本。代码基线：上游 `main`（`e5c5d28f`，上游 v4.1.9 之后），叠加以下 Fork 变更。

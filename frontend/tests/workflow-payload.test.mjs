@@ -96,7 +96,64 @@ test("buildOcrPayload maps provider token field and paddle api url", () => {
   assert.equal(payload.provider, "paddle");
   assert.equal(payload.paddle_token, "ocr-token");
   assert.equal(payload.paddle_api_url, "https://paddle.example/v1");
+  assert.equal(payload.paddle_model, "PaddleOCR-VL-1.6");
+  assert.equal(payload.model_version, constants.DEFAULT_MODEL_VERSION);
+  assert.equal(payload.language, constants.DEFAULT_LANGUAGE);
   assert.equal(payload.page_ranges, "1-3");
+});
+
+test("buildOcrPayload honors configured paddle options", () => {
+  const payload = buildOcrPayload({
+    pageRanges: "",
+    ocrProvider: "paddle",
+    ocrToken: "ocr-token",
+    ocrOptions: {
+      paddle: { paddleApiUrl: "https://paddle.custom/api", paddleModel: "PaddleOCR-VL-1.5" },
+    },
+    defaultPaddleApiUrl: () => "https://paddle.example/v1",
+    constants,
+  });
+
+  assert.equal(payload.paddle_api_url, "https://paddle.custom/api");
+  assert.equal(payload.paddle_model, "PaddleOCR-VL-1.5");
+});
+
+test("buildOcrPayload maps mineru token field and mineru options", () => {
+  const payload = buildOcrPayload({
+    pageRanges: "2-5",
+    ocrProvider: "mineru",
+    ocrToken: "mineru-token",
+    defaultPaddleApiUrl: () => "https://paddle.example/v1",
+    constants,
+  });
+
+  assert.equal(payload.provider, "mineru");
+  assert.equal(payload.mineru_token, "mineru-token");
+  assert.equal(payload.model_version, "vlm");
+  assert.equal(payload.language, "ch");
+  assert.equal(payload.disable_formula, false);
+  assert.equal(payload.disable_table, false);
+  assert.equal(payload.page_ranges, "2-5");
+  assert.equal("paddle_api_url" in payload, false);
+  assert.equal("paddle_model" in payload, false);
+});
+
+test("buildOcrPayload honors configured mineru options", () => {
+  const payload = buildOcrPayload({
+    pageRanges: "",
+    ocrProvider: "mineru",
+    ocrToken: "mineru-token",
+    ocrOptions: {
+      mineru: { modelVersion: "pipeline", language: "en", disableFormula: true, disableTable: true },
+    },
+    defaultPaddleApiUrl: () => "",
+    constants,
+  });
+
+  assert.equal(payload.model_version, "pipeline");
+  assert.equal(payload.language, "en");
+  assert.equal(payload.disable_formula, true);
+  assert.equal(payload.disable_table, true);
 });
 
 test("buildSourcePayload and buildRenderPayload preserve render-only inputs", () => {

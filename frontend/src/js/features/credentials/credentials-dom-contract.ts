@@ -9,6 +9,7 @@ export const CREDENTIAL_DOM_IDS = {
   hidden: {
     ocrProvider: "ocr_provider",
     paddleToken: "paddle_token",
+    mineruToken: "mineru_token",
     modelApiKey: "api_key",
   },
   browser: {

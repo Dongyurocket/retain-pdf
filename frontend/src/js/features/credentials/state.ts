@@ -4,12 +4,14 @@ import {
   type Store,
   type StoreListener,
 } from "../../app-framework/store.js";
-import { DEFAULT_OCR_PROVIDER } from "../../config/providers.js";
+import { DEFAULT_OCR_PROVIDER, normalizeOcrProvider } from "../../config/providers.js";
 import { normalizeBrowserStoredConfig } from "../../config/storage.js";
 
 export interface CredentialsFields {
   ocrProvider: string;
   paddleToken: string;
+  mineruToken: string;
+  ocrOptions: Record<string, Record<string, string | boolean>>;
   modelApiKey: string;
 }
 
@@ -36,7 +38,9 @@ export interface DeepSeekBalanceState {
 }
 
 export interface OcrTokenOptions {
+  providerId?: string;
   defaultPaddleToken?: () => string;
+  defaultMineruToken?: () => string;
 }
 
 export interface OcrValidationCachePayload {
@@ -107,6 +111,8 @@ function normalizeCredentials(payload: Partial<CredentialsFields> = {}): Credent
   return normalizeBrowserStoredConfig({
     ocrProvider: payload.ocrProvider || DEFAULT_OCR_PROVIDER,
     paddleToken: payload.paddleToken,
+    mineruToken: payload.mineruToken,
+    ocrOptions: payload.ocrOptions,
     modelApiKey: payload.modelApiKey,
   }) as CredentialsFields;
 }
@@ -157,18 +163,28 @@ export function createCredentialsStore(
     },
     actions: {
       setCredentials(currentState, payload = {}) {
+        const normalized = normalizeCredentials(payload);
+        // ocrOptions 不随隐藏 input 桥/部分回填被静默冲掉：
+        // 调用方没给这个键时保留现有配置（如 bindHiddenCredentialInputPersistence 的回读）。
+        if (!payload || typeof payload !== "object" || !("ocrOptions" in payload)) {
+          normalized.ocrOptions = currentState.credentials.ocrOptions;
+        }
         return {
           ...currentState,
-          credentials: normalizeCredentials(payload),
+          credentials: normalized,
         };
       },
       patchCredentials(currentState, payload = {}) {
+        const normalized = normalizeCredentials({
+          ...currentState.credentials,
+          ...payload,
+        });
+        if (!payload || typeof payload !== "object" || !("ocrOptions" in payload)) {
+          normalized.ocrOptions = currentState.credentials.ocrOptions;
+        }
         return {
           ...currentState,
-          credentials: normalizeCredentials({
-            ...currentState.credentials,
-            ...payload,
-          }),
+          credentials: normalized,
         };
       },
       resetDeepSeekBalance(currentState) {
@@ -215,8 +231,12 @@ export function createCredentialsStore(
 
 export function ocrTokenFromCredentials(
   credentials: Partial<CredentialsFields> = {},
-  { defaultPaddleToken }: OcrTokenOptions = {},
+  { providerId = "", defaultPaddleToken, defaultMineruToken }: OcrTokenOptions = {},
 ): string {
+  const provider = normalizeOcrProvider(providerId || credentials.ocrProvider);
+  if (provider === "mineru") {
+    return credentials.mineruToken || defaultMineruToken?.() || "";
+  }
   const token = credentials.paddleToken;
   if (token) {
     return token;

@@ -36,7 +36,7 @@ function createState() {
   };
 }
 
-test("runOcrTokenValidation passes injected apiPrefix to OCR validation port", async () => {
+test("runOcrTokenValidation passes apiPrefix and provider options to OCR validation port", async () => {
   const calls = [];
   const messages = [];
   const result = await runOcrTokenValidation({
@@ -44,6 +44,10 @@ test("runOcrTokenValidation passes injected apiPrefix to OCR validation port", a
     state: createState(),
     providerId: "paddle",
     token: "ocr-token",
+    providerOptions: {
+      paddleApiUrl: "https://paddle.example/api",
+      paddleModel: "PaddleOCR-VL-1.5",
+    },
     validateOcrToken: async (...args) => {
       calls.push(args);
       return { ok: true, status: "valid", summary: "ok" };
@@ -52,7 +56,15 @@ test("runOcrTokenValidation passes injected apiPrefix to OCR validation port", a
   });
 
   assert.equal(result.ok, true);
-  assert.deepEqual(calls, [["/custom/api", "paddle", "ocr-token"]]);
+  assert.deepEqual(calls, [[
+    "/custom/api",
+    "paddle",
+    "ocr-token",
+    {
+      paddleApiUrl: "https://paddle.example/api",
+      paddleModel: "PaddleOCR-VL-1.5",
+    },
+  ]]);
   assert.equal(messages.at(-1)[1], "valid");
 });
 
@@ -238,6 +250,72 @@ test("credentials state port owns credential source of truth and token helpers",
   assert.equal(port.getCredentials().ocrProvider, "paddle");
   assert.equal(port.getCredentials().paddleToken, "");
   assert.equal(mirrored.length, 1);
+});
+
+test("credentials state port resolves ocr token per provider", () => {
+  const port = createCredentialsStatePort({
+    initialState: {
+      ocrProvider: "mineru",
+      paddleToken: "paddle-token",
+      mineruToken: "mineru-token",
+      modelApiKey: "sk-test",
+    },
+  });
+
+  // 显式 providerId 优先；缺省回落到当前 ocrProvider
+  assert.equal(port.getOcrToken({ providerId: "mineru" }), "mineru-token");
+  assert.equal(port.getOcrToken(), "mineru-token");
+  assert.equal(port.getOcrToken({ providerId: "paddle" }), "paddle-token");
+
+  // mineru token 缺失时用默认 token 兜底，不回退到 paddle token
+  assert.equal(ocrTokenFromCredentials({ ocrProvider: "mineru" }, {
+    defaultMineruToken: () => "mineru-default",
+  }), "mineru-default");
+  assert.equal(ocrTokenFromCredentials({ ocrProvider: "mineru" }, {
+    defaultPaddleToken: () => "paddle-default",
+  }), "");
+
+  // 切换 provider 后 hasComplete 只看当前 provider 的 token
+  const incomplete = createCredentialsStatePort({
+    initialState: {
+      ocrProvider: "mineru",
+      paddleToken: "paddle-token",
+      mineruToken: "",
+      modelApiKey: "sk-test",
+    },
+  });
+  assert.equal(incomplete.hasComplete(), false);
+  assert.equal(incomplete.hasComplete({ defaultMineruToken: () => "mineru-default" }), true);
+});
+
+test("credentials state port preserves ocrOptions when payload omits the key", () => {
+  const port = createCredentialsStatePort({
+    initialState: {
+      ocrProvider: "paddle",
+      paddleToken: "paddle-token",
+      modelApiKey: "sk-test",
+      ocrOptions: {
+        paddle: { paddleApiUrl: "https://paddle.custom/api", paddleModel: "PaddleOCR-VL-1.5" },
+      },
+    },
+  });
+
+  // 隐藏 input 桥等只携带 token 的回读不应冲掉已保存的选项
+  port.setCredentials({ ocrProvider: "paddle", paddleToken: "paddle-token", modelApiKey: "sk-test" });
+  assert.equal(port.getCredentials().ocrOptions.paddle.paddleModel, "PaddleOCR-VL-1.5");
+
+  port.patchCredentials({ ocrProvider: "mineru" });
+  assert.equal(port.getCredentials().ocrOptions.paddle.paddleApiUrl, "https://paddle.custom/api");
+
+  // 显式传入 ocrOptions 时按新值归一化（缺省键补默认值）
+  port.setCredentials({
+    ocrProvider: "mineru",
+    mineruToken: "mineru-token",
+    modelApiKey: "sk-test",
+    ocrOptions: { mineru: { language: "en" } },
+  });
+  assert.equal(port.getCredentials().ocrOptions.mineru.language, "en");
+  assert.equal(port.getCredentials().ocrOptions.mineru.modelVersion, "vlm");
 });
 
 test("credentials state port owns validation and balance runtime state", () => {

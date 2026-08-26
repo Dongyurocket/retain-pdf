@@ -254,6 +254,7 @@ test("CredentialsDialog：保存(浏览器模式)——写隐藏 input、同步 
   const services = createServices();
   const { host, root } = await mountHome(services);
 
+
   // 阶段 C(shadcn 改造):paddle_token/api_key/ocr_provider 等隐藏 input
   // (HiddenCredentialInputs)挂在 TranslationWorkflowDialog 内部(job-form),
   // 该对话框换成 Radix Dialog 后不 forceMount Content——需要先打开一次才会
@@ -282,6 +283,111 @@ test("CredentialsDialog：保存(浏览器模式)——写隐藏 input、同步 
   const credentials = defaultCredentialsStatePort.getCredentials();
   assert.equal(credentials.paddleToken, "paddle-secret");
   assert.equal(credentials.modelApiKey, "deepseek-secret");
+
+  root.unmount();
+  services.dispose();
+  host.remove();
+});
+
+test("CredentialsDialog：切换 MinerU——provider 面板/选项/双 token 互不覆盖", async () => {
+  const ocrValidateCalls = [];
+  const services = createServices({
+    validators: {
+      validateOcrToken: async (_apiPrefix, providerId, token, providerOptions) => {
+        ocrValidateCalls.push([providerId, token, providerOptions]);
+        return { ok: true, status: "valid", summary: "Token 有效" };
+      },
+    },
+  });
+  const { host, root } = await mountHome(services);
+
+  services.workflowDialog.openUpload();
+  await waitFor(() => byId("mineru_token"), "工作流对话框打开后隐藏 input 挂载");
+
+  dom.window.document.dispatchEvent(new dom.window.CustomEvent(APP_EVENTS.openBrowserCredentials));
+  await waitFor(() => byId("app-settings-dialog") !== null, "打开设置");
+  await waitFor(() => byId("browser-api-key") !== null, "API 工作台就绪");
+
+  // 默认仍是 paddle
+  const providerSelect = byId("browser-ocr-provider-select");
+  assert.equal(providerSelect.value, "paddle");
+  assert.equal(dom.window.document.querySelector('[data-ocr-provider-panel="paddle"]').hidden, false);
+  assert.equal(dom.window.document.querySelector('[data-ocr-provider-panel="mineru"]').hidden, true);
+
+  // paddle 选项默认值（公共端点留空 + VL-1.6 默认模型）
+  assert.equal(byId("browser-paddle-option-paddleApiUrl").value, "");
+  assert.equal(byId("browser-paddle-option-paddleModel").value, "PaddleOCR-VL-1.6");
+
+  // 先保存一次 paddle token
+  typeInput(byId("browser-paddle-token"), "paddle-secret");
+  typeInput(byId("browser-api-key"), "deepseek-secret");
+  click(byId("browser-credentials-save-btn"));
+  await waitFor(
+    () => defaultCredentialsStatePort.getCredentials().paddleToken === "paddle-secret",
+    "paddle token 保存",
+  );
+
+  // 受控 select：原生 setter + change 事件走 React onChange → changeProvider
+  const selectSetter = Object.getOwnPropertyDescriptor(dom.window.HTMLSelectElement.prototype, "value").set;
+  selectSetter.call(providerSelect, "mineru");
+  providerSelect.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
+  await waitFor(
+    () => defaultCredentialsStatePort.getCredentials().ocrProvider === "mineru",
+    "切换 provider 写入 store",
+  );
+  await waitFor(
+    () => dom.window.document.querySelector('[data-ocr-provider-panel="mineru"]').hidden === false,
+    "mineru 面板激活",
+  );
+  assert.equal(dom.window.document.querySelector('[data-ocr-provider-panel="paddle"]').hidden, true);
+
+  // mineru 选项默认值：vlm / ch / 公式表格识别默认开启（适合本项目扫描 PDF + 行内公式）
+  assert.equal(byId("browser-mineru-option-modelVersion").value, "vlm");
+  assert.equal(byId("browser-mineru-option-language").value, "ch");
+  assert.equal(byId("browser-mineru-option-disableFormula").checked, false);
+  assert.equal(byId("browser-mineru-option-disableTable").checked, false);
+
+  // 修改语言与公式开关
+  selectSetter.call(byId("browser-mineru-option-language"), "en");
+  byId("browser-mineru-option-language").dispatchEvent(new dom.window.Event("change", { bubbles: true }));
+  const formulaCheckbox = byId("browser-mineru-option-disableFormula");
+  const checkedSetter = Object.getOwnPropertyDescriptor(dom.window.HTMLInputElement.prototype, "checked").set;
+  checkedSetter.call(formulaCheckbox, true);
+  formulaCheckbox.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
+
+  // mineru token 校验走 provider 分发
+  typeInput(byId("browser-mineru-token"), "mineru-secret");
+  click(byId("browser-mineru-validate-btn"));
+  await waitFor(() => ocrValidateCalls.length === 1, "mineru 校验被调用");
+  assert.deepEqual(ocrValidateCalls[0], [
+    "mineru",
+    "mineru-secret",
+    {
+      modelVersion: "vlm",
+      language: "en",
+      disableFormula: true,
+      disableTable: false,
+    },
+  ]);
+
+  // 保存：mineru token + 选项落盘，paddle token 不被覆盖
+  click(byId("browser-credentials-save-btn"));
+  await waitFor(
+    () => defaultCredentialsStatePort.getCredentials().mineruToken === "mineru-secret",
+    "mineru token 保存",
+  );
+  const credentials = defaultCredentialsStatePort.getCredentials();
+  assert.equal(credentials.ocrProvider, "mineru");
+  assert.equal(credentials.paddleToken, "paddle-secret", "切换 provider 不覆盖已保存的 paddle token");
+  assert.equal(credentials.ocrOptions.mineru.language, "en");
+  assert.equal(credentials.ocrOptions.mineru.disableFormula, true);
+  assert.equal(credentials.ocrOptions.mineru.modelVersion, "vlm", "未改的选项保持默认值");
+  assert.equal(credentials.ocrOptions.paddle.paddleModel, "PaddleOCR-VL-1.6", "paddle 选项保持默认值");
+
+  // 隐藏 input 桥接：ocr_provider / mineru_token
+  assert.equal(byId("ocr_provider").value, "mineru");
+  assert.equal(byId("mineru_token").value, "mineru-secret");
+  assert.equal(byId("paddle_token").value, "paddle-secret");
 
   root.unmount();
   services.dispose();

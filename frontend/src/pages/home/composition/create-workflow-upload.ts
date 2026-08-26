@@ -3,6 +3,7 @@
 import {
   API_PREFIX,
   apiBase,
+  defaultMineruToken,
   defaultModelApiKey,
   defaultModelBaseUrl,
   defaultModelName,
@@ -81,21 +82,25 @@ export function createWorkflowAndUpload({
   function readSubmitValues({
     defaultOcrProvider: ocrProviderFallback,
     defaultPaddleToken: paddleTokenFallback,
+    defaultMineruToken: mineruTokenFallback,
     defaultModelApiKey: modelApiKeyFallback,
   }: {
     defaultOcrProvider?: string;
     defaultPaddleToken?: string;
+    defaultMineruToken?: string;
     defaultModelApiKey?: string;
   } = {}) {
     const credentials = credentialsStatePort.getCredentials();
     const ocrProvider = credentials?.ocrProvider || ocrProviderFallback;
-    // providerId 仅作历史调用透传；getOcrToken 实现只读 defaultPaddleToken。
     const ocrToken = credentialsStatePort.getOcrToken({
+      providerId: ocrProvider,
       defaultPaddleToken: () => paddleTokenFallback || "",
+      defaultMineruToken: () => mineruTokenFallback || "",
     }) || "";
     return {
       ocrProvider,
       ocrToken,
+      ocrOptions: credentials?.ocrOptions,
       modelApiKey: credentials?.modelApiKey || modelApiKeyFallback,
       selectedGlossaryId: workflowView.selectedGlossaryId(),
     };
@@ -114,6 +119,7 @@ export function createWorkflowAndUpload({
     defaultModelBaseUrl,
     defaultPaddleApiUrl,
     defaultPaddleToken,
+    defaultMineruToken,
     defaultOcrProvider,
     defaultModelApiKey,
     defaultFileLabel: DEFAULT_FILE_LABEL,

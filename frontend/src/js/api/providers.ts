@@ -14,6 +14,19 @@ export async function validatePaddleToken(apiPrefix, payload) {
   return submitJson(buildApiEndpoint(apiPrefix, "providers/paddle/validate-token"), payload);
 }
 
+export async function validateMineruToken(apiPrefix, payload) {
+  if (isMockMode()) {
+    void apiPrefix;
+    void payload;
+    return {
+      ok: true,
+      valid: true,
+      summary: "mock mode: token validation skipped",
+    };
+  }
+  return submitJson(buildApiEndpoint(apiPrefix, "providers/mineru/validate-token"), payload);
+}
+
 export async function validateDeepSeekToken(apiPrefix, payload) {
   if (isMockMode()) {
     void apiPrefix;

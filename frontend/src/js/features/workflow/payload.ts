@@ -1,4 +1,4 @@
-import { getOcrProviderDefinition, normalizeOcrProvider } from "../../config/providers.js";
+import { getOcrProviderDefinition, normalizeOcrOptions, normalizeOcrProvider } from "../../config/providers.js";
 
 /** Developer/workflow config fields consumed by payload builders. */
 export interface WorkflowDeveloperConfig {
@@ -48,6 +48,8 @@ export interface BuildOcrPayloadOptions {
   pageRanges?: string;
   ocrProvider?: string;
   ocrToken?: string;
+  /** { [providerId]: { [optionKey]: string | boolean } } — 来自凭据设置的 provider 选项 */
+  ocrOptions?: Record<string, Record<string, string | boolean>>;
   defaultPaddleApiUrl: () => string;
   constants: WorkflowPayloadConstants;
 }
@@ -79,21 +81,33 @@ export function buildOcrPayload({
   pageRanges,
   ocrProvider,
   ocrToken,
+  ocrOptions,
   defaultPaddleApiUrl,
   constants,
 }: BuildOcrPayloadOptions) {
   const provider = normalizeOcrProvider(ocrProvider);
   const definition = getOcrProviderDefinition(provider);
+  const options = normalizeOcrOptions(provider, ocrOptions?.[provider]);
   const payload: Record<string, unknown> = {
     provider,
     [definition.tokenField]: ocrToken || "",
-    model_version: constants.DEFAULT_MODEL_VERSION,
-    language: constants.DEFAULT_LANGUAGE,
     page_ranges: pageRanges,
   };
   if (definition.id === "paddle") {
-    payload.paddle_api_url = defaultPaddleApiUrl() || "https://paddleocr.aistudio-app.com";
+    // paddle 沿用既有线行为（model_version/language 常量）,另加可配置的
+    // paddle_api_url / paddle_model(后端 normalize_paddle_model_name 收口)。
+    payload.model_version = constants.DEFAULT_MODEL_VERSION;
+    payload.language = constants.DEFAULT_LANGUAGE;
+    payload.paddle_api_url = `${options.paddleApiUrl || ""}`.trim()
+      || defaultPaddleApiUrl()
+      || "https://paddleocr.aistudio-app.com";
+    payload.paddle_model = options.paddleModel;
+    return payload;
   }
+  payload.model_version = options.modelVersion;
+  payload.language = options.language;
+  payload.disable_formula = Boolean(options.disableFormula);
+  payload.disable_table = Boolean(options.disableTable);
   return payload;
 }
 
