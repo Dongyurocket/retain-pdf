@@ -19,7 +19,7 @@ import { BookListRow } from "../shell/BookListRow.jsx";
 import { LibraryToolbar } from "./LibraryToolbar.jsx";
 import { LibraryFilterMenu, matchesLibraryFilter } from "./LibraryFilterMenu.jsx";
 import { LibraryBatchToolbar } from "./LibraryBatchToolbar.jsx";
-import { useLibraryAutoLoad } from "./useLibraryAutoLoad.js";
+import { LibraryPagination } from "./LibraryPagination.jsx";
 import { useHomeReturnRestore } from "./useHomeReturnRestore.js";
 import { EmptyState } from "../../../../../shared/icons/EmptyState.jsx";
 import {
@@ -45,11 +45,12 @@ function sortItems(items, sortMode) {
 }
 
 const VIEW_TEXT = Object.freeze({
-  loadMore: "更多",
-  loadMoreLoading: "加载中…",
   empty: "暂无最近任务",
   emptySearch: "没有匹配的书籍",
 });
+
+/** 每页条数:与 recent-jobs 引擎 RECENT_JOBS_PAGE_SIZE 保持一致(24)。 */
+export const LIBRARY_PAGE_SIZE = 24;
 
 export function RecentJobsLibrary({ onBatchModeChange }: any = {}) {
   const services = useHomeServices();
@@ -180,18 +181,25 @@ export function RecentJobsLibrary({ onBatchModeChange }: any = {}) {
 
   const summary = buildRecentJobsSummaryViewModel(recentJobs.invocationSummary, items);
 
-  useLibraryAutoLoad({
-    scrollBodyRef,
-    hasMore: Boolean(recentJobs.hasMore),
-    loadMoreLoading,
-    viewPort,
-  });
+  // 真分页:页码选择驱动翻页,不再滚动自动加载
+  const total = Math.max(0, Number(recentJobs.total) || 0);
+  const currentPage = Math.max(1, Number(recentJobs.currentPage) || 1);
+  const totalPages = Math.max(1, Math.ceil(total / LIBRARY_PAGE_SIZE));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
 
   // 从阅读器返回：列表有高度后再恢复 #recent-jobs-scroll-body 滚动
   useHomeReturnRestore(hasItems || mode === "empty" || mode === "error");
 
-  function handleLoadMoreClick() {
-    viewPort.handlersRef.current.onLoadMore?.();
+  function handlePageChange(nextPage) {
+    const page = Math.max(1, Math.min(totalPages, Number(nextPage) || 1));
+    if (page === currentPage) {
+      return;
+    }
+    viewPort.handlersRef.current.onPageChange?.(page);
+    // 翻页回顶,避免停在长列表底部看到"没变化"
+    if (scrollBodyRef.current) {
+      scrollBodyRef.current.scrollTop = 0;
+    }
   }
 
   return (
@@ -277,17 +285,16 @@ export function RecentJobsLibrary({ onBatchModeChange }: any = {}) {
             ))}
           </div>
         </div>
-        <div className="recent-jobs-more-row">
-          <button
-            id="load-more-jobs-btn"
-            className={`secondary${recentJobs.hasMore ? "" : " hidden"}`}
-            type="button"
-            disabled={loadMoreLoading}
-            onClick={handleLoadMoreClick}
-          >
-            {loadMoreLoading ? VIEW_TEXT.loadMoreLoading : VIEW_TEXT.loadMore}
-          </button>
-        </div>
+        {mode === "list" ? (
+          <div className="recent-jobs-more-row">
+            <LibraryPagination
+              currentPage={safeCurrentPage}
+              totalPages={totalPages}
+              busy={loadMoreLoading}
+              onPageChange={handlePageChange}
+            />
+          </div>
+        ) : null}
       </div>
       {batchMode ? (
         <LibraryBatchToolbar

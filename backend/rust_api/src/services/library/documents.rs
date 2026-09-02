@@ -9,7 +9,7 @@ use crate::models::api::{
 };
 use crate::models::domain::UploadRecord;
 
-use super::books::{ensure_deletable, remove_job_files, remove_path_if_exists};
+use super::books::{ensure_deletable, remove_job_files_best_effort, remove_path_best_effort};
 use super::LibraryDeps;
 
 pub(crate) fn document_media_urls(
@@ -162,8 +162,9 @@ pub fn delete_document(
 
     let mut removed_jobs = Vec::new();
     let mut removed_paths = Vec::new();
+    let mut unremoved_paths = Vec::new();
     for job in &jobs {
-        removed_paths.extend(remove_job_files(deps, &job.job_id)?);
+        remove_job_files_best_effort(deps, &job.job_id, &mut removed_paths, &mut unremoved_paths);
         deps.db.delete_job(&job.job_id)?;
         removed_jobs.push(job.job_id.clone());
     }
@@ -172,9 +173,9 @@ pub fn delete_document(
     for upload in deps.db.uploads_for_document(document_id)? {
         let stored = PathBuf::from(&upload.stored_path);
         if let Some(parent) = stored.parent() {
-            remove_path_if_exists(parent.to_path_buf(), &mut removed_paths)?;
+            remove_path_best_effort(parent.to_path_buf(), &mut removed_paths, &mut unremoved_paths);
         } else {
-            remove_path_if_exists(stored, &mut removed_paths)?;
+            remove_path_best_effort(stored, &mut removed_paths, &mut unremoved_paths);
         }
         deps.db.delete_upload(&upload.upload_id)?;
     }
@@ -187,6 +188,7 @@ pub fn delete_document(
         document_id: document_id.to_string(),
         removed_jobs,
         removed_paths,
+        unremoved_paths,
     })
 }
 

@@ -1,6 +1,7 @@
 import { isRecentJobActive } from "./card-presenter.js";
 import { invalidateRecentJobImages } from "./image-refresh.js";
 import { isPrimaryRecentJob } from "./pagination.js";
+import { clearDocumentTombstone, isTombstoned } from "./tombstones.js";
 import {
   createLibraryJobItemFromRuntime,
   mergeLibraryJobItem,
@@ -321,6 +322,10 @@ export function createRecentJobsRuntimePatches({
     if (!jobId) {
       return;
     }
+    // 墓碑:已删除条目不被轮询补丁复活(后端投影/删除竞态期间仍可能拉到旧 payload)
+    if (isTombstoned(job)) {
+      return;
+    }
     const state = statePort.getSnapshot();
     const index = findItemIndex(state.items, job, jobId);
     const previousJobId = index >= 0
@@ -385,6 +390,12 @@ export function createRecentJobsRuntimePatches({
     }
     const jobId = `${job?.job_id || ""}`.trim();
     if (!jobId) {
+      return;
+    }
+    // 新任务创建:同 document 的墓碑解除(重新上传同一文档要能正常显示)
+    clearDocumentTombstone(`${job?.document_id || ""}`);
+    // 已删除的任务条目不会被旧轮询重新插入
+    if (isTombstoned(job)) {
       return;
     }
     // 核心：有 document_id / source_job_id 且书架已有该书 → 就地 update，绝不 prepend 新卡

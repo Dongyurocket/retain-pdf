@@ -281,6 +281,7 @@ export type LibraryViewStore = Store<LibraryViewState, LibraryViewActions>;
 export type RecentJobsViewPortHandlers = {
   onOpen?: ((jobId: string) => void) | null;
   onLoadMore?: (() => void) | null;
+  onPageChange?: ((page: number) => void) | null;
   onSearch?: ((query: string) => void) | null;
   isSuspended?: () => boolean;
 };

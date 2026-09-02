@@ -355,6 +355,8 @@ test("recent jobs state port normalizes pagination state", () => {
   assert.deepEqual(port.getSnapshot(), {
     offset: 12,
     hasMore: false,
+    total: 0,
+    currentPage: 1,
     invocationSummary: null,
     items: [{ job_id: "job-1" }],
   });
@@ -383,6 +385,8 @@ test("recent jobs state port normalizes pagination state", () => {
   assert.deepEqual(port.getSnapshot(), {
     offset: 0,
     hasMore: true,
+    total: 0,
+    currentPage: 1,
     invocationSummary: { stage_spec_count: 2 },
     items: [{ job_id: "job-keep" }],
   });
@@ -486,6 +490,8 @@ test("recent jobs state port is backed by the app-framework store without legacy
   assert.deepEqual(port.store.getSnapshot(), {
     offset: 20,
     hasMore: true,
+    total: 0,
+    currentPage: 1,
     invocationSummary: { stage_spec_count: 7, unknown_count: 2 },
     items: [{ job_id: "job-store" }],
   });
@@ -513,6 +519,8 @@ test("recent jobs state port batches pagination updates into one notification", 
   assert.deepEqual(port.getSnapshot(), {
     offset: 10,
     hasMore: false,
+    total: 0,
+    currentPage: 1,
     invocationSummary: { stage_spec_count: 1 },
     items: [{ job_id: "job-batch" }],
   });
@@ -535,6 +543,8 @@ test("recent jobs store can be used without the legacy global state object", () 
   assert.deepEqual(store.getSnapshot(), {
     offset: 0,
     hasMore: true,
+    total: 0,
+    currentPage: 1,
     invocationSummary: null,
     items: [{ job_id: "job-initial" }],
   });
@@ -822,7 +832,8 @@ test("recent jobs page commit refreshes active cards without auto-opening jobs",
   assert.deepEqual(rendered, ["job-running"]);
   assert.deepEqual(recovered, []);
   assert.deepEqual(refreshCalls, ["schedule"]);
-  assert.deepEqual(autoLoads, ["auto"]);
+  // 真分页后 commit 不再调度滚动自动加载(页码选择驱动翻页)
+  assert.deepEqual(autoLoads, []);
   assert.equal(statePort.getSnapshot().offset, 24);
 });
 
@@ -2629,8 +2640,8 @@ test("recent jobs refresh scheduler can bypass throttle without forcing suspende
   assert.deepEqual(timers.map((timer) => timer.delay), [10, 30]);
   timers.forEach((timer) => timer.callback());
   assert.deepEqual(loads, [
-    { reset: true, silent: true },
-    { reset: true, silent: true },
+    { reset: true, silent: true, preservePage: true },
+    { reset: true, silent: true, preservePage: true },
   ]);
 
   const suspendedScheduler = createRecentJobsRefreshScheduler({

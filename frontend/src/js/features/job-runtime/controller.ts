@@ -5,6 +5,7 @@ import {
 import {
   createJobEventsResource,
 } from "./job-events-resource.js";
+import { hasReadyManifestArtifact } from "../../job/artifacts.js";
 import { createCurrentJobStatePort } from "./current-job-state.js";
 import { createSecondaryResourceStatePort } from "./secondary-resource-cache.js";
 import {
@@ -126,6 +127,14 @@ export function mountJobRuntimeFeature({
       requestLibraryRefresh(state, { terminal: true, port: libraryEventPort });
       clearActiveJobId(jobId);
       pollingPort.stop();
+      // 仅成功任务需要等待 markdown_bundle_zip;失败/取消没有下载产物,
+      // 不做无意义的后台确认。若当前缓存已 ready 也无需额外请求。
+      if (
+        `${job.status || ""}`.trim() === "succeeded"
+        && !hasReadyManifestArtifact(cachedManifest, "markdown_bundle_zip")
+      ) {
+        scheduleTerminalManifestConfirmation(jobId, generation);
+      }
     }
     secondaryResourceSchedulerPort.schedule({
       jobId,
@@ -133,6 +142,55 @@ export function mountJobRuntimeFeature({
       generation,
       terminal,
     });
+  }
+
+  function scheduleTerminalManifestConfirmation(jobId, generation) {
+    const confirmDelaysMs = [1200, 4200, 9000];
+    const run = (index) => {
+      // 用户已开始新任务(新 generation)或重启轮询:丢弃过期确认
+      if (!pollingPort.isCurrentGeneration(jobId, generation)) {
+        return;
+      }
+      // 终态分支已安排一次即时 manifest 刷新;若它已拿到产物就不重复请求。
+      if (hasReadyManifestArtifact(
+        secondaryResourcePort.cachedFor("manifest", jobId),
+        "markdown_bundle_zip",
+      )) {
+        return;
+      }
+      void fetchJobArtifactsManifest(jobId, apiPrefix)
+        .then((manifestPayload) => {
+          if (!pollingPort.isCurrentGeneration(jobId, generation)) {
+            return;
+          }
+          secondaryResourcePort.cache("manifest", jobId, manifestPayload);
+          renderJobSecondaryPatch?.({
+            context: renderContextPort.currentFor(jobId),
+            source: "manifest",
+          });
+          // markdown 压缩包已就绪 → 按钮可用,不再重试;未就绪继续等到
+          // 下一次确认窗口(后端打包通常几秒内收尾)。
+          if (hasReadyManifestArtifact(manifestPayload, "markdown_bundle_zip")) {
+            return;
+          }
+          attempt(index + 1);
+        })
+        .catch(() => {
+          attempt(index + 1);
+        });
+    };
+    function attempt(index) {
+      if (index >= confirmDelaysMs.length) {
+        return;
+      }
+      const delay = confirmDelaysMs[index];
+      if (globalThis.window?.setTimeout) {
+        globalThis.window.setTimeout(() => run(index), delay);
+      } else {
+        globalThis.setTimeout?.(() => run(index), delay);
+      }
+    }
+    attempt(0);
   }
 
   /**

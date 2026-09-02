@@ -1,4 +1,5 @@
 import { flattenStageSnapshot } from "../../job/stage-snapshot-flatten.js";
+import { isTombstoned } from "./tombstones.js";
 
 export const RECENT_JOBS_PAGE_SIZE = 24;
 
@@ -41,6 +42,7 @@ export async function collectRecentJobsPage({
   const collected = [];
   const seenJobIds = new Set(existingJobIds);
   let latestInvocationSummary = null;
+  let latestTotal = null;
   let nextOffset = startOffset;
   let hasMore = true;
   let requestCount = 0;
@@ -54,6 +56,9 @@ export async function collectRecentJobsPage({
       payload = await fetchLibraryBookList(apiPrefix, { limit: fetchLimit, offset: nextOffset, q: query });
     }
     latestInvocationSummary = payload?.invocation_summary || latestInvocationSummary;
+    if (Number.isFinite(Number(payload?.total))) {
+      latestTotal = Number(payload.total);
+    }
     const items = Array.isArray(payload?.items) ? payload.items : [];
     const pageHasMore = payload?.has_more;
     if (items.length === 0) {
@@ -63,6 +68,10 @@ export async function collectRecentJobsPage({
 
     const beforeCount = collected.length;
     for (const item of items) {
+      // 墓碑:已删除的文档/任务即使后端竞态仍在列表里也不显示
+      if (isTombstoned(item)) {
+        continue;
+      }
       if (!isPrimaryRecentJob(item)) {
         continue;
       }
@@ -92,10 +101,16 @@ export async function collectRecentJobsPage({
     }
   }
 
+  // 后端返回 total 时以其为准(分页页码计算);否则退回旧估算。
+  if (latestTotal !== null) {
+    hasMore = nextOffset < latestTotal;
+  }
+
   return {
     collected,
     hasMore,
     latestInvocationSummary,
     nextOffset,
+    total: latestTotal,
   };
 }

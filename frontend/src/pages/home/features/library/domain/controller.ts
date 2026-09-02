@@ -30,6 +30,7 @@ import {
   patchDocument,
   API_PREFIX,
   APP_EVENTS,
+  addDocumentTombstone,
 } from "../../../composition/external.js";
 
 type ErrorLike = {
@@ -237,8 +238,11 @@ export function createLibraryController({
     } catch (error) {
       throw new Error(friendlyDocumentDeleteError(error as ErrorLike));
     }
+    // 墓碑:删除成功后即使后端投影/轮询竞态也不让条目复活
+    addDocumentTombstone(normalizedId);
     removeLibraryDocuments?.([normalizedId]);
-    void reload({ reset: true, silent: true });
+    // preservePage:停留在当前页 soft 对齐,不跳回第 1 页
+    void reload({ reset: true, silent: true, preservePage: true });
   }
 
   // 批量删除:API 仍逐个 delete；网格乐观一次移除 + 单次 silent soft reload。
@@ -253,9 +257,10 @@ export function createLibraryController({
     const confirmedIds = ids.filter((_, index) => results[index]?.status === "fulfilled");
     const confirmed = confirmedIds.length;
     if (confirmedIds.length) {
+      confirmedIds.forEach((id) => addDocumentTombstone(id));
       removeLibraryDocuments?.(confirmedIds);
     }
-    void reload({ reset: true, silent: true });
+    void reload({ reset: true, silent: true, preservePage: true });
     return { confirmed, failed: results.length - confirmed };
   }
 

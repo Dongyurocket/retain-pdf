@@ -5,7 +5,21 @@
 
 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [SemVer](https://semver.org/lang/zh-CN/)。
 
-## [v4.1.12] - 2026-08-26
+## [v4.1.13] - 2026-09-02
+
+### 修复
+
+- **图书馆真正分页**：图书馆固定每页 24 条，新增页码选择、上一页/下一页和空页自动回退；后端与文档库数据源返回过滤后的总数，搜索结果也支持分页。
+- **删除后条目复活**：删除时即使 Windows 文件句柄暂时占用文件，也会先完成数据库删除；前端过滤异步刷新和轮询竞态，避免已删除条目重新出现。
+- **Markdown ZIP 下载状态延迟同步**：任务成功后短时间重试产物清单，压缩包就绪后立即启用下载按钮，无需重启应用。
+
+### 安装包
+
+- Windows：`RetainPDF-Windows-4.1.13-Setup.exe`（NSIS 安装包）
+- macOS：`RetainPDF-Mac-4.1.13.dmg`（Apple Silicon）
+- Linux：`RetainPDF-Linux-4.1.13.deb`
+
+[v4.1.13]: https://github.com/Dongyurocket/retain-pdf/releases/tag/v4.1.13
 
 ### 新增
 

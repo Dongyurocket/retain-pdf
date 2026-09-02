@@ -68,9 +68,10 @@ pub fn delete_library_book(
         .map(|doc| doc.document_id);
 
     let mut removed_paths = Vec::new();
+    let mut unremoved_paths = Vec::new();
     let mut removed_child_jobs = Vec::new();
     for job in &jobs {
-        removed_paths.extend(remove_job_files(deps, &job.job_id)?);
+        remove_job_files_best_effort(deps, &job.job_id, &mut removed_paths, &mut unremoved_paths);
         deps.db.delete_job(&job.job_id)?;
         if job.job_id != job_id {
             removed_child_jobs.push(job.job_id.clone());
@@ -91,6 +92,7 @@ pub fn delete_library_book(
         deleted: true,
         job_id: job_id.to_string(),
         removed_paths,
+        unremoved_paths,
         removed_child_jobs,
     })
 }
@@ -126,6 +128,7 @@ pub(super) fn ensure_deletable(job: &JobSnapshot, force: bool) -> Result<(), App
     Ok(())
 }
 
+#[allow(dead_code)]
 pub(super) fn remove_job_files(deps: &LibraryDeps<'_>, job_id: &str) -> Result<Vec<String>, AppError> {
     let mut removed = Vec::new();
     remove_path_if_exists(deps.output_root.join(job_id), &mut removed)?;
@@ -136,6 +139,47 @@ pub(super) fn remove_job_files(deps: &LibraryDeps<'_>, job_id: &str) -> Result<V
     Ok(removed)
 }
 
+/// Windows 下目录常被仍活着的进程句柄占用(封面读取/下载缓冲等),
+/// 文件删不掉不应阻断整次删除——DB 行照样删、返回 200,残留路径
+/// 记入 unremoved_paths 供调用方感知(重启后可自行清理)。
+pub(super) fn remove_job_files_best_effort(
+    deps: &LibraryDeps<'_>,
+    job_id: &str,
+    removed: &mut Vec<String>,
+    unremoved: &mut Vec<String>,
+) {
+    remove_path_best_effort(deps.output_root.join(job_id), removed, unremoved);
+    remove_path_best_effort(
+        deps.downloads_dir.join(format!("{job_id}.zip")),
+        removed,
+        unremoved,
+    );
+}
+
+pub(super) fn remove_path_best_effort(
+    path: PathBuf,
+    removed: &mut Vec<String>,
+    unremoved: &mut Vec<String>,
+) {
+    if !path.exists() {
+        return;
+    }
+    let result = if path.is_dir() {
+        std::fs::remove_dir_all(&path)
+    } else {
+        std::fs::remove_file(&path)
+    };
+    match result {
+        Ok(()) => removed.push(path.to_string_lossy().to_string()),
+        Err(error) => {
+            let entry = format!("{} ({error})", path.to_string_lossy().to_string());
+            eprintln!("[library] failed to remove path (kept for later cleanup): {entry}");
+            unremoved.push(entry);
+        }
+    }
+}
+
+#[allow(dead_code)]
 pub(super) fn remove_path_if_exists(path: PathBuf, removed: &mut Vec<String>) -> Result<(), AppError> {
     if !path.exists() {
         return Ok(());

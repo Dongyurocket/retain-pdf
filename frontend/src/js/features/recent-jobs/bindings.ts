@@ -15,6 +15,7 @@ export function bindRecentJobsFeatureEvents({
   viewPort.bindEvents({
     onOpen: refreshScheduler.openDialog,
     onLoadMore: () => runtime.loadRecentJobs({ reset: false }),
+    onPageChange: (page) => runtime.loadRecentJobs({ reset: true, page: Number(page) || 1 }),
     onSearch: refreshScheduler.updateSearch,
     isSuspended: refreshScheduler.isSuspended,
   });

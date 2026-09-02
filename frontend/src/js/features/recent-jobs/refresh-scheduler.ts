@@ -40,7 +40,8 @@ export function createRecentJobsRefreshScheduler({
     lastRefreshAt = now;
     environment.clearTimeout(refreshTimer);
     refreshTimer = environment.setTimeout(() => {
-      void loadRecentJobs({ reset: true, silent: true });
+      // preservePage:终态对齐/定时软刷新停留在用户正在浏览的页码,不跳回第 1 页
+      void loadRecentJobs({ reset: true, silent: true, preservePage: true });
     }, delay);
   }
 

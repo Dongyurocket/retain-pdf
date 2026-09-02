@@ -24,6 +24,10 @@ export interface LoadRecentJobsOptions {
   reset?: boolean;
   silent?: boolean;
   query?: string;
+  /** 目标页码(从 1 开始)。reset=true 且未指定时默认第 1 页。 */
+  page?: number;
+  /** reset=true 时保留当前页码(删除/更新后的 soft 对齐用)。 */
+  preservePage?: boolean;
 }
 
 export interface LibraryBooksPageData {
@@ -31,6 +35,7 @@ export interface LibraryBooksPageData {
   hasMore?: boolean;
   latestInvocationSummary?: RecentJobsInvocationSummary;
   nextOffset?: number;
+  total?: number | null;
 }
 
 export interface LibraryBooksResourceSnapshot {
@@ -75,6 +80,8 @@ export interface CreateRecentJobsLoaderOptions {
     | "batch"
     | "setOffset"
     | "setHasMore"
+    | "setTotal"
+    | "setCurrentPage"
     | "setInvocationSummary"
     | "setItems"
   >;
@@ -124,6 +131,7 @@ export function createRecentJobsLoader({
     hasMore: boolean;
     latestInvocationSummary: RecentJobsInvocationSummary;
     nextOffset: number;
+    total: number | null;
   }> {
     const snapshot = await libraryBooksResource.load(params, {
       cache: false,
@@ -136,24 +144,55 @@ export function createRecentJobsLoader({
       hasMore: false,
       latestInvocationSummary: null,
       nextOffset: params.startOffset || 0,
+      total: null,
     }) as {
       collected: LibraryJobItem[];
       hasMore: boolean;
       latestInvocationSummary: RecentJobsInvocationSummary;
       nextOffset: number;
+      total: number | null;
     };
+  }
+
+  function resolveTargetPage({
+    reset,
+    page,
+    preservePage,
+  }: {
+    reset?: boolean;
+    page?: number;
+    preservePage?: boolean;
+  }): number {
+    if (Number.isFinite(Number(page)) && Number(page) > 0) {
+      return Number(page);
+    }
+    if (reset) {
+      if (preservePage) {
+        const currentPage = recentJobsStatePort.getSnapshot().currentPage;
+        return Math.max(1, Number(currentPage) || 1);
+      }
+      return 1;
+    }
+    // 非 reset:沿用旧语义"下一页"(兼容 load-more 兜底路径)
+    const snapshot = recentJobsStatePort.getSnapshot();
+    const totalPages = Math.max(1, Math.ceil((Number(snapshot.total) || 0) / RECENT_JOBS_PAGE_SIZE));
+    return Math.min(totalPages, Math.max(1, (Number(snapshot.currentPage) || 1) + 1));
   }
 
   async function load({
     reset = false,
     silent = false,
     query = getQuery?.() || "",
+    page,
+    preservePage = false,
   }: LoadRecentJobsOptions = {}): Promise<void> {
     if (loading) {
       pendingLoad = {
         reset: reset || Boolean(pendingLoad?.reset),
         silent: silent && pendingLoad?.silent !== false,
         query,
+        page,
+        preservePage: preservePage || Boolean(pendingLoad?.preservePage),
       };
       return;
     }
@@ -161,6 +200,8 @@ export function createRecentJobsLoader({
       return;
     }
     loading = true;
+    const targetPage = resolveTargetPage({ reset, page, preservePage });
+    const startOffset = (targetPage - 1) * RECENT_JOBS_PAGE_SIZE;
     if (!silent) {
       homeStatePort.setRecentJobsLoadingState(RECENT_JOBS_LOADING_STATES.LOADING);
     }
@@ -174,7 +215,8 @@ export function createRecentJobsLoader({
     }
 
     try {
-      const { offset, items: previousItems } = recentJobsStatePort.getSnapshot();
+      const { items: previousItems } = recentJobsStatePort.getSnapshot();
+      // 分页模式下每页自洽:重置时以空集合去重,不再把已加载项当作排除集。
       const existingJobIds = new Set(
         (reset ? [] : previousItems)
           .map((item) => `${item?.job_id || ""}`.trim())
@@ -185,14 +227,29 @@ export function createRecentJobsLoader({
         hasMore,
         latestInvocationSummary,
         nextOffset,
+        total,
       } = await loadLibraryBooksPage({
-        startOffset: reset ? 0 : offset,
+        startOffset,
         pageSize: RECENT_JOBS_PAGE_SIZE,
         existingJobIds,
         query,
       });
 
+      // 总数已知:hasMore 以"是否还有下一页"为准(页码计算一致性)
+      const totalPages = Number.isFinite(Number(total))
+        ? Math.max(1, Math.ceil((Number(total) || 0) / RECENT_JOBS_PAGE_SIZE))
+        : null;
+      const nextHasMore = totalPages !== null
+        ? targetPage < totalPages
+        : hasMore;
+
       if (reset && collected.length === 0) {
+        // 当前页已空(如删掉本页最后一项):自动回退上一页;第 1 页则落空态。
+        if (targetPage > 1) {
+          loading = false;
+          await load({ reset: true, silent, query, page: targetPage - 1 });
+          return;
+        }
         commitRecentJobsEmpty({
           query,
           invocationSummary: latestInvocationSummary,
@@ -216,8 +273,10 @@ export function createRecentJobsLoader({
       commitRecentJobsPage({
         reset,
         collected,
-        hasMore,
+        hasMore: nextHasMore,
         nextOffset,
+        total,
+        currentPage: targetPage,
         invocationSummary: latestInvocationSummary,
         query,
         recentJobActions,

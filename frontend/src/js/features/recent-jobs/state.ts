@@ -12,6 +12,10 @@ export type { LibraryJobItem, StageAdapterPort };
 export interface RecentJobsState {
   offset: number;
   hasMore: boolean;
+  /** 过滤后总数(来自 /library/books 的 total),用于真正分页的页码计算。 */
+  total: number;
+  /** 当前页码(从 1 开始)。 */
+  currentPage: number;
   invocationSummary: Record<string, unknown> | null;
   items: LibraryJobItem[];
 }
@@ -26,6 +30,8 @@ export type RecentJobsInitialState = Partial<RecentJobsState> & {
 export type RecentJobsActions = {
   setOffset(currentState: RecentJobsState, value?: unknown): RecentJobsState;
   setHasMore(currentState: RecentJobsState, value?: unknown): RecentJobsState;
+  setTotal(currentState: RecentJobsState, value?: unknown): RecentJobsState;
+  setCurrentPage(currentState: RecentJobsState, value?: unknown): RecentJobsState;
   setItems(currentState: RecentJobsState, items?: unknown): RecentJobsState;
   setInvocationSummary(
     currentState: RecentJobsState,
@@ -52,6 +58,8 @@ export interface RecentJobsBatchApi {
   setInvocationSummary: BoundStoreActions<RecentJobsState, RecentJobsActions>["setInvocationSummary"];
   setItems: BoundStoreActions<RecentJobsState, RecentJobsActions>["setItems"];
   setOffset: BoundStoreActions<RecentJobsState, RecentJobsActions>["setOffset"];
+  setTotal: BoundStoreActions<RecentJobsState, RecentJobsActions>["setTotal"];
+  setCurrentPage: BoundStoreActions<RecentJobsState, RecentJobsActions>["setCurrentPage"];
   replaceItem: BoundStoreActions<RecentJobsState, RecentJobsActions>["replaceItem"];
   prependItem: BoundStoreActions<RecentJobsState, RecentJobsActions>["prependItem"];
   removeJobFamily: BoundStoreActions<RecentJobsState, RecentJobsActions>["removeJobFamily"];
@@ -68,6 +76,8 @@ export interface RecentJobsStatePort {
   setInvocationSummary(invocationSummary?: unknown): void;
   setItems(items?: unknown): void;
   setOffset(value?: unknown): void;
+  setTotal(value?: unknown): void;
+  setCurrentPage(value?: unknown): void;
   subscribe(listener: StoreListener<RecentJobsState>): () => void;
   store: RecentJobsStore;
 }
@@ -92,6 +102,8 @@ export function createRecentJobsStore(
     initialState: {
       offset: Number(initialState.offset ?? initialState.recentJobsOffset) || 0,
       hasMore: initialState.hasMore ?? initialState.recentJobsHasMore ?? true,
+      total: Number(initialState.total ?? 0) || 0,
+      currentPage: Number(initialState.currentPage ?? 1) || 1,
       invocationSummary: asInvocationSummary(initialState.invocationSummary ?? null),
       items: asJobItems(initialState.items ?? initialState.recentJobsItems),
     },
@@ -106,6 +118,18 @@ export function createRecentJobsStore(
         return {
           ...currentState,
           hasMore: Boolean(value),
+        };
+      },
+      setTotal(currentState, value) {
+        return {
+          ...currentState,
+          total: Math.max(0, Number(value) || 0),
+        };
+      },
+      setCurrentPage(currentState, value) {
+        return {
+          ...currentState,
+          currentPage: Math.max(1, Number(value) || 1),
         };
       },
       setItems(currentState, items) {
@@ -187,6 +211,14 @@ export function createRecentJobsStatePort(
     actions.setHasMore(value);
   }
 
+  function setTotal(value?: unknown) {
+    actions.setTotal(value);
+  }
+
+  function setCurrentPage(value?: unknown) {
+    actions.setCurrentPage(value);
+  }
+
   function setItems(items?: unknown) {
     actions.setItems(items);
   }
@@ -223,6 +255,8 @@ export function createRecentJobsStatePort(
         setInvocationSummary: batchActions.setInvocationSummary,
         setItems: batchActions.setItems,
         setOffset: batchActions.setOffset,
+        setTotal: batchActions.setTotal,
+        setCurrentPage: batchActions.setCurrentPage,
         replaceItem: batchActions.replaceItem,
         prependItem: batchActions.prependItem,
         removeJobFamily: batchActions.removeJobFamily,
@@ -242,6 +276,8 @@ export function createRecentJobsStatePort(
     setInvocationSummary,
     setItems,
     setOffset,
+    setTotal,
+    setCurrentPage,
     subscribe: store.subscribe,
     store,
   };

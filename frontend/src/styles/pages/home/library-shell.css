@@ -1045,6 +1045,63 @@ body.is-soft-reader-open {
   }
 }
 
+/* 图书馆真分页控件(24 条/页):上一页 / 页码窗口 / 下一页 */
+@utility library-pagination {
+  @apply flex items-center justify-center gap-2 py-4;
+
+  & .library-pagination-btn {
+    @apply rounded-full border border-[var(--line)] bg-white text-[13px] font-semibold leading-none text-[var(--ink)];
+    appearance: none;
+    min-width: 36px;
+    min-height: 36px;
+    padding: 0 12px;
+    filter: none;
+    transition: border-color 120ms ease, background 120ms ease, color 120ms ease;
+
+    &:hover:not(:disabled) {
+      border-color: var(--ink);
+      background: var(--bg);
+      color: var(--ink);
+    }
+
+    &:disabled {
+      opacity: 0.42;
+      cursor: default;
+    }
+
+    &.is-current {
+      border-color: var(--ink);
+      background: var(--ink);
+      color: var(--paper);
+      cursor: default;
+    }
+
+    &:focus-visible {
+      outline: 2px solid color-mix(in srgb, var(--accent) 40%, transparent);
+      outline-offset: 3px;
+    }
+  }
+
+  & .library-pagination-nav {
+    @apply flex items-center justify-center;
+    padding: 0 10px;
+
+    & svg {
+      width: 16px;
+      height: 16px;
+      display: block;
+    }
+  }
+
+  & .library-pagination-ellipsis {
+    @apply inline-flex items-center justify-center text-[13px] font-semibold;
+    color: var(--muted, color-mix(in srgb, var(--ink) 55%, transparent));
+    min-width: 24px;
+    min-height: 36px;
+    user-select: none;
+  }
+}
+
 @utility brand-mark {
   @apply flex items-center;
 }

@@ -110,9 +110,10 @@ test("HomeApp：契约 id、idle 链、工作流对话框事件契约与交互",
   const contractIds = [
     // app-shell
     "app-shell", "developer-btn", "open-output-btn",
-    // library 骨架(3b 占位)
+    // library 骨架(3b 占位)——load-more-jobs-btn 已被真分页控件(library-pagination)
+    // 取代,分页控件只在总数 > 一页时渲染,不在常驻契约清单里。
     "library-view", "recent-jobs-scroll-body", "recent-jobs-summary", "recent-jobs-empty",
-    "library-grid", "recent-jobs-list", "load-more-jobs-btn", "open-query-btn", "library-search-input",
+    "library-grid", "recent-jobs-list", "open-query-btn", "library-search-input",
     "library-add-pdf-btn", "app-settings-btn",
   ];
   for (const id of contractIds) {

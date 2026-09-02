@@ -27,12 +27,34 @@ pub(crate) fn build_library_book_list_view(
 ) -> Result<LibraryBookListView, AppError> {
     let mut query = query.clone();
     query.workflow = None;
-    let items = list_books_filtered(db, &query)?
+    // 全量过滤(不截断),内存里先滤掉 Ocr 子 job 再算 total,
+    // 最后按 offset/limit 截断当前页——这样 total 对任何过滤组合都准确。
+    let filtered = list_books_filtered(db, &query)?;
+    let book_jobs: Vec<&JobSnapshot> = filtered
         .iter()
         .filter(|job| job.workflow != WorkflowKind::Ocr)
-        .map(|job| build_library_book_list_item(db, data_root, job, base_url))
         .collect();
-    Ok(LibraryBookListView { items })
+    let total = book_jobs.len();
+    // job_ids 精确点名(分类文件夹展开)返回完整集合,不做分页截断。
+    let has_job_ids = query
+        .job_ids
+        .as_deref()
+        .map(|raw| !raw.trim().is_empty())
+        .unwrap_or(false);
+    let items = if has_job_ids {
+        book_jobs
+            .into_iter()
+            .map(|job| build_library_book_list_item(db, data_root, job, base_url))
+            .collect()
+    } else {
+        book_jobs
+            .into_iter()
+            .skip(query.offset as usize)
+            .take(query.limit as usize)
+            .map(|job| build_library_book_list_item(db, data_root, job, base_url))
+            .collect()
+    };
+    Ok(LibraryBookListView { items, total })
 }
 
 pub(crate) fn build_library_book_detail_view(
@@ -125,7 +147,7 @@ fn list_books_filtered(db: &Db, query: &ListJobsQuery) -> Result<Vec<JobSnapshot
         .map(str::trim)
         .filter(|value| !value.is_empty());
     // 分类文件夹展开时用 job_ids 精确点名一批 job(见 ListJobsQuery 字段注释)——
-    // 和 q 一样需要先在全量里过滤,不能先按 limit/offset 截断再匹配。
+    // 和 q 一样需要先在全量里过滤。
     let job_ids: Option<std::collections::HashSet<String>> = query
         .job_ids
         .as_deref()
@@ -137,15 +159,11 @@ fn list_books_filtered(db: &Db, query: &ListJobsQuery) -> Result<Vec<JobSnapshot
                 .collect::<std::collections::HashSet<_>>()
         })
         .filter(|ids| !ids.is_empty());
-    let wide_fetch = search_query.is_some() || job_ids.is_some();
-    let (fetch_limit, fetch_offset) = if wide_fetch {
-        (10_000, 0)
-    } else {
-        (query.limit, query.offset)
-    };
+    // 统一全量拉取(个人图书馆规模下毫秒级),分页截断一律由调用方在内存里做;
+    // total 因此对所有过滤组合都准确,不再依赖 DB 层 limit/offset。
     let jobs = db.list_jobs(
-        fetch_limit,
-        fetch_offset,
+        10_000,
+        0,
         query.status.as_ref(),
         query.workflow.as_ref(),
     )?;
@@ -181,20 +199,7 @@ fn list_books_filtered(db: &Db, query: &ListJobsQuery) -> Result<Vec<JobSnapshot
                 .unwrap_or(true)
         })
         .collect();
-    if job_ids.is_some() {
-        // 精确集合查询:调用方要的是"这些 job 的完整数据",不是一页列表,
-        // 不做 limit/offset 截断。
-        return Ok(filtered);
-    }
-    Ok(filtered
-        .into_iter()
-        .skip(if search_query.is_some() {
-            query.offset as usize
-        } else {
-            0
-        })
-        .take(query.limit as usize)
-        .collect())
+    Ok(filtered)
 }
 
 fn library_search_text(db: &Db, job: &JobSnapshot) -> String {

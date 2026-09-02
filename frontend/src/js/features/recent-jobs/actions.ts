@@ -2,6 +2,7 @@ import { resolveRecoverableJobId } from "./active-job-recovery.js";
 import { createRecentJobsRuntimePort } from "./job-runtime-port.js";
 import { createRecentJobsReaderPort } from "./reader-port.js";
 import { createRecentJobsNavigationPort } from "./navigation-port.js";
+import { addJobTombstone } from "./tombstones.js";
 
 export function createRecentJobActions({
   apiPrefix,
@@ -63,6 +64,8 @@ export function createRecentJobActions({
       renderRecentJobsError(friendlyDeleteError(error), { reset: false });
       return;
     }
+    // 墓碑:删除成功但后端投影/轮询竞态时防止条目复活
+    addJobTombstone(normalizedJobId);
     statePort.removeJobFamily(normalizedJobId);
     const nextItems = statePort.getSnapshot().items;
     if (nextItems.length === 0) {

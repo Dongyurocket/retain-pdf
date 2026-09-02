@@ -1,6 +1,6 @@
 // 文档中心网格的分页数据源(计划 F2)。返回形状与
 // recent-jobs/pagination.js#collectRecentJobsPage 对齐
-// ({ collected, hasMore, latestInvocationSummary, nextOffset }),这样
+// ({ collected, hasMore, latestInvocationSummary, nextOffset, total }),这样
 // recent-jobs 的 loader.js/commit.js/store 引擎可以一行不改地消费它。
 //
 // 每篇文档产出一张卡:先拉一页 /documents,收集该页 active_job_id,批量向
@@ -13,6 +13,7 @@
 // f2-document-centric-grid-design)。
 
 import { shapeDocumentsWithBooks } from "./shape-documents-with-books.js";
+import { isTombstoned } from "../recent-jobs/tombstones.js";
 
 const SEARCH_FETCH_LIMIT = 200;
 
@@ -40,16 +41,16 @@ export async function collectDocumentLibraryPage({
 
   const payload = await fetchDocumentList(apiPrefix, { limit, offset });
   const documents = Array.isArray(payload?.documents) ? payload.documents : [];
-  const total = Number.isFinite(Number(payload?.total)) ? Number(payload.total) : documents.length;
+  const documentTotal = Number.isFinite(Number(payload?.total)) ? Number(payload.total) : documents.length;
 
   // 文档 → 卡片的映射走统一编排(shapeDocumentsWithBooks);去重/搜索过滤这些
   // 分页数据源自己的关切留在下面。
   const shaped = await shapeDocumentsWithBooks(documents, { fetchLibraryBookList, apiPrefix });
 
-  const collected = [];
+  const matched = [];
   for (const item of shaped) {
     const key = normalizedJobId(item.job_id);
-    if (!key || seen.has(key)) {
+    if (!key || seen.has(key) || isTombstoned(item)) {
       continue;
     }
     if (searching) {
@@ -59,18 +60,27 @@ export async function collectDocumentLibraryPage({
       }
     }
     seen.add(key);
-    collected.push(item);
+    matched.push(item);
   }
 
+  // 搜索当前仍走客户端筛选:先取上限内候选,再按 startOffset 切成真正的 24 条页。
+  // 普通浏览直接使用 /documents 返回的 total(服务端分页)。
+  const total = searching ? matched.length : documentTotal;
+  const collected = searching
+    ? matched.slice(startOffset, startOffset + pageSize)
+    : matched;
   const hasMore = searching
-    ? false
+    ? startOffset + collected.length < total
     : documents.length > 0 && offset + documents.length < total;
-  const nextOffset = searching ? startOffset : startOffset + pageSize;
+  const nextOffset = searching
+    ? startOffset + pageSize
+    : startOffset + documents.length;
 
   return {
     collected,
     hasMore,
     latestInvocationSummary: null,
     nextOffset,
+    total,
   };
 }

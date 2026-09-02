@@ -141,6 +141,7 @@ test("整合一页:已翻译合并 book,馆藏用合成 id,hasMore 由 total 决
   assert.equal(page.collected[1].job_id, syntheticLibraryJobId("d2"));
   assert.equal(page.collected[2].status, "running");
   assert.equal(page.hasMore, true, "3/5 → 还有更多");
+  assert.equal(page.total, 5, "服务端 total 透传给页码控件");
   assert.equal(page.nextOffset, 3);
 });
 
@@ -161,9 +162,10 @@ test("跨页去重:existingJobIds 命中的(含合成 id)不重复收集", async
   });
   assert.equal(page.collected.length, 0, "两条都已在既有集合里");
   assert.equal(page.hasMore, false);
+  assert.equal(page.total, 2);
 });
 
-test("搜索:客户端按标题过滤,hasMore 关闭", async () => {
+test("搜索:客户端按标题过滤并返回筛选后 total", async () => {
   const documents = [
     { document_id: "d1", active_job_id: null, title: "量子化学导论" },
     { document_id: "d2", active_job_id: null, title: "机器学习基础" },
@@ -181,6 +183,41 @@ test("搜索:客户端按标题过滤,hasMore 关闭", async () => {
   });
   assert.equal(page.collected.length, 1);
   assert.equal(page.collected[0].document_id, "d1");
-  assert.equal(page.hasMore, false, "搜索态关闭继续分页");
+  assert.equal(page.total, 1, "搜索 total 应是过滤后命中数");
+  assert.equal(page.hasMore, false, "一条命中不需要下一页");
   assert.ok((calls.documentQuery.limit || 0) >= 200, "搜索时一次多拉一批");
+});
+
+test("搜索:筛选结果也按 24 条真正分页", async () => {
+  const documents = Array.from({ length: 30 }, (_, index) => ({
+    document_id: `d-${index + 1}`,
+    active_job_id: null,
+    title: `分页搜索结果 ${index + 1}`,
+  }));
+  const { fetchDocumentList, fetchLibraryBookList } = makeFetchers({ documents, total: 30, books: [] });
+  const firstPage = await collectDocumentLibraryPage({
+    fetchDocumentList,
+    fetchLibraryBookList,
+    apiPrefix: "/api/v1",
+    startOffset: 0,
+    pageSize: 24,
+    existingJobIds: new Set(),
+    query: "分页搜索",
+  });
+  const secondPage = await collectDocumentLibraryPage({
+    fetchDocumentList,
+    fetchLibraryBookList,
+    apiPrefix: "/api/v1",
+    startOffset: 24,
+    pageSize: 24,
+    existingJobIds: new Set(),
+    query: "分页搜索",
+  });
+
+  assert.equal(firstPage.total, 30);
+  assert.equal(firstPage.collected.length, 24);
+  assert.equal(firstPage.hasMore, true);
+  assert.equal(secondPage.total, 30);
+  assert.equal(secondPage.collected.length, 6);
+  assert.equal(secondPage.hasMore, false);
 });

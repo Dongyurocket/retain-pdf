@@ -60,6 +60,8 @@ export interface CommitRecentJobsPageOptions {
   collected?: LibraryJobItem[];
   hasMore?: boolean;
   nextOffset?: number;
+  total?: number | null;
+  currentPage?: number;
   invocationSummary?: RecentJobsInvocationSummary;
   query?: string;
   recentJobActions?: RecentJobActionsPort;
@@ -72,6 +74,8 @@ export interface CommitRecentJobsPageOptions {
     | "getSnapshot"
     | "setOffset"
     | "setHasMore"
+    | "setTotal"
+    | "setCurrentPage"
     | "setInvocationSummary"
     | "setItems"
   >;
@@ -131,6 +135,8 @@ export function commitRecentJobsPage({
   collected = [],
   hasMore = false,
   nextOffset = 0,
+  total = null,
+  currentPage = 1,
   invocationSummary = null,
   query = "",
   recentJobActions,
@@ -149,15 +155,21 @@ export function commitRecentJobsPage({
     : (runtimePatches.applyExisting?.(collected) || runtimePatches.apply(collected));
 
   if (typeof recentJobsStatePort.batch === "function") {
-    recentJobsStatePort.batch(({ setOffset, setHasMore, setInvocationSummary, setItems }) => {
+    recentJobsStatePort.batch(({ setOffset, setHasMore, setTotal, setCurrentPage, setInvocationSummary, setItems }) => {
       setOffset(nextOffset);
       setHasMore(hasMore);
+      if (total !== null && total !== undefined && Number.isFinite(Number(total))) {
+        setTotal(total);
+      }
+      setCurrentPage(currentPage);
       setInvocationSummary(invocationSummary);
       setItems(nextItems);
     });
   } else {
     recentJobsStatePort.setOffset(nextOffset);
     recentJobsStatePort.setHasMore(hasMore);
+    recentJobsStatePort.setTotal?.(total);
+    recentJobsStatePort.setCurrentPage?.(currentPage);
     recentJobsStatePort.setInvocationSummary?.(invocationSummary);
     recentJobsStatePort.setItems(nextItems);
   }
@@ -180,9 +192,8 @@ export function commitRecentJobsPage({
     });
   }
 
-  if (hasMore && !`${query || ""}`.trim()) {
-    setTimeoutFn(() => scheduleAutoLoadIfNeeded?.(), 0);
-  }
+  // 真分页后不再滚动/自动加载下一页;hasMore 仅驱动分页控件形态,
+  // 不再触发 scheduleAutoLoadIfNeeded(兼容旧 no-op 注入)。
 
   return {
     nextItems,

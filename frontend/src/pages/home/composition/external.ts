@@ -147,6 +147,8 @@ export {
 } from "../../../js/api/jobs-query.js";
 export { fetchJobEvents } from "../../../js/api/jobs-events.js";
 export { fetchJobArtifactsManifest } from "../../../js/api/jobs-artifacts.js";
+export { hasReadyManifestArtifact } from "../../../js/job/artifacts.js";
+export { addDocumentTombstone } from "../../../js/features/recent-jobs/tombstones.js";
 export {
   fetchJobDiagnostics,
   fetchJobStageActions,

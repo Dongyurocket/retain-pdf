@@ -25,7 +25,7 @@ export function createRecentJobsReactViewPort({
 }: RecentJobsReactViewPortOptions = {}): RecentJobsReactViewPort {
   const viewStore: LibraryViewStore = store;
   const handlersRef: { current: RecentJobsViewPortHandlers } = {
-    current: { onOpen: null, onLoadMore: null, onSearch: null, isSuspended: () => false },
+    current: { onOpen: null, onLoadMore: null, onPageChange: null, onSearch: null, isSuspended: () => false },
   };
   const autoLoadCheckerRef: {
     current: null | ((options?: AutoLoadCheckOptions) => void);
@@ -90,10 +90,11 @@ export function createRecentJobsReactViewPort({
   function bindEvents({
     onOpen,
     onLoadMore,
+    onPageChange,
     onSearch,
     isSuspended = () => false,
   }: Partial<RecentJobsViewPortHandlers> = {}) {
-    handlersRef.current = { onOpen, onLoadMore, onSearch, isSuspended };
+    handlersRef.current = { onOpen, onLoadMore, onPageChange, onSearch, isSuspended };
   }
 
   return {

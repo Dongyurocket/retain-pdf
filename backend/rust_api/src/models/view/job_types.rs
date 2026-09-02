@@ -442,6 +442,9 @@ pub struct LibraryBookListItemView {
 #[derive(Debug, Serialize)]
 pub struct LibraryBookListView {
     pub items: Vec<LibraryBookListItemView>,
+    /// 过滤后(含 q / job_ids / provider 过滤)且不含 Ocr 子 job 的总数,
+    /// 供前端真正分页(页码选择)使用;老客户端忽略此字段即可。
+    pub total: usize,
 }
 
 #[derive(Debug, Serialize)]
@@ -491,6 +494,8 @@ pub struct LibraryDeleteResultView {
     pub deleted: bool,
     pub job_id: String,
     pub removed_paths: Vec<String>,
+    /// 删除成功但磁盘文件未能移除(如 Windows 句柄占用)的路径,不影响删除结果。
+    pub unremoved_paths: Vec<String>,
     pub removed_child_jobs: Vec<String>,
 }
 
@@ -505,6 +510,8 @@ pub struct DocumentDeleteResultView {
     pub document_id: String,
     pub removed_jobs: Vec<String>,
     pub removed_paths: Vec<String>,
+    /// 删除成功但磁盘文件未能移除(如 Windows 句柄占用)的路径,不影响删除结果。
+    pub unremoved_paths: Vec<String>,
 }
 
 fn default_preview_kind() -> String {

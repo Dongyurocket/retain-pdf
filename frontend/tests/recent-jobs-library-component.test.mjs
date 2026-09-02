@@ -111,7 +111,7 @@ test("RecentJobsLibrary：初始加载(mock=parallel)渲染网格 + DOM 契约",
   // 的 store 永远拿不到数据)。
   const contractIds = [
     "library-view", "recent-jobs-scroll-body", "recent-jobs-summary",
-    "recent-jobs-empty", "library-grid", "recent-jobs-list", "load-more-jobs-btn",
+    "recent-jobs-empty", "library-grid", "recent-jobs-list",
   ];
   for (const id of contractIds) {
     assert.ok(byId(dom, id), `契约 id 缺失：#${id}`);
@@ -438,6 +438,66 @@ test("RecentJobsLibrary：workflow 挂起不死锁(开→job-updated 仍打补�
   await waitFor(() => byId(dom, "translation-workflow-dialog") === null, "工作流对话框关闭");
   await waitFor(() => notifyCountAfterClose > 0, "关闭后 300ms 静默刷新应恢复(不死锁)");
   unsubscribe2();
+
+  root.unmount();
+  services.dispose();
+  host.remove();
+});
+
+test("RecentJobsLibrary：真分页——空页自动回退(页码越界不落空态)", async () => {
+  const dom = makeDom("?mock=parallel");
+  const { services, root, host } = await bootHomeApp(dom);
+  await waitFor(
+    () => services.library.recentJobsStore.getSnapshot().items.length > 0,
+    "初次加载的 mock 文档就位",
+  );
+  const initialCount = services.library.recentJobsStore.getSnapshot().items.length;
+
+  // mock 数据不足一页:请求第 5 页必为空,loader 应自动回退到有数据页(第 1 页)
+  await services.library.viewPort.handlersRef.current.onPageChange?.(5);
+  await waitFor(
+    () => services.library.recentJobsStore.getSnapshot().currentPage === 1,
+    "空页回退到第 1 页",
+  );
+  assert.equal(
+    services.library.recentJobsStore.getSnapshot().items.length,
+    initialCount,
+    "回退页数据完整(mock 总量不足一页,只有第 1 页)",
+  );
+
+  root.unmount();
+  services.dispose();
+  host.remove();
+});
+
+test("RecentJobsLibrary：删除成功后条目立即消失且不被 soft 对齐复活(墓碑)", async () => {
+  const dom = makeDom("?mock=parallel");
+  const { services, root, host } = await bootHomeApp(dom);
+
+  await waitFor(
+    () => services.library.recentJobsStore.getSnapshot().items.length > 0,
+    "初次加载的 mock 文档就位",
+  );
+  const items = services.library.recentJobsStore.getSnapshot().items;
+  // mock 收藏固定挂在 MOCK_DOCUMENT_ID(doc-9f2a41c8e77b)上:选其它文档避开 409 删除保护
+  const target = items.find((item) => {
+    const id = `${item.document_id || ""}`.trim();
+    return id && id !== "doc-9f2a41c8e77b";
+  });
+  assert.ok(target, "找到一篇可删(无收藏引用)的 mock 文档");
+  const targetId = `${target.document_id}`.trim();
+  const beforeCount = items.length;
+
+  // 删除成功 → 本地乐观移除 + reload 过滤墓碑,条目数量 -1 且不再出现
+  await services.library.actions.deleteDocument(targetId);
+  await waitFor(
+    () => {
+      const rows = services.library.recentJobsStore.getSnapshot().items;
+      return rows.length === beforeCount - 1
+        && !rows.some((item) => `${item.document_id || ""}`.trim() === targetId);
+    },
+    "删除后条目从网格消失",
+  );
 
   root.unmount();
   services.dispose();

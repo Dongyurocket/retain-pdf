@@ -908,6 +908,7 @@ async fn library_books_job_ids_filter_returns_only_requested_jobs() {
         .map(|item| item["job_id"].as_str().expect("job_id"))
         .collect();
     assert_eq!(ids.len(), 2);
+    assert_eq!(payload["data"]["total"].as_u64(), Some(2));
     assert!(ids.contains(&"job-alpha"));
     assert!(ids.contains(&"job-gamma"));
     assert!(!ids.contains(&"job-beta"));
@@ -926,6 +927,24 @@ async fn library_books_job_ids_filter_returns_only_requested_jobs() {
         .expect("unfiltered response");
     let payload = json_response(response).await;
     assert_eq!(payload["data"]["items"].as_array().expect("items").len(), 3);
+    assert_eq!(payload["data"]["total"].as_u64(), Some(3));
+
+    // 真分页:total 始终是过滤后总数,offset/limit 只影响当前页 items。
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/v1/library/books?limit=1&offset=1")
+                .header("X-API-Key", "test-key")
+                .body(Body::empty())
+                .expect("paged response"),
+        )
+        .await
+        .expect("paged response");
+    assert_eq!(response.status(), StatusCode::OK);
+    let payload = json_response(response).await;
+    assert_eq!(payload["data"]["items"].as_array().expect("paged items").len(), 1);
+    assert_eq!(payload["data"]["total"].as_u64(), Some(3));
 }
 
 #[tokio::test]
