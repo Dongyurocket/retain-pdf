@@ -686,7 +686,7 @@ export function useReaderAskRuntime(options: {
     });
 
     try {
-      await remoteAnswerer?.ensureLoaded?.(jobId);
+      await (remoteAnswerer as any)?.ensureLoaded?.(jobId);
       let usedFallback = false;
       let result: { answer?: string; citations?: unknown[] };
       try {

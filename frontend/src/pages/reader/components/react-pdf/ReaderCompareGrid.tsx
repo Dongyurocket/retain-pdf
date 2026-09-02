@@ -30,7 +30,7 @@ export type ReaderCompareGridProps = {
   onNumPagesChange: (pages: number, pane: "source" | "translated") => void;
 };
 
-export function ReaderCompareGrid(props: ReaderCompareGridProps): JSX.Element {
+export function ReaderCompareGrid(props: ReaderCompareGridProps) {
   const {
     mode,
     bindShell,

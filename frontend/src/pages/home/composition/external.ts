@@ -265,6 +265,7 @@ export { readActiveJobId } from "../../../js/features/job-runtime/active-job-sto
 // recent-jobs / documents-library
 export { mountRecentJobsFeature } from "../../../js/features/recent-jobs/controller.js";
 export { createRecentJobsStatePort } from "../../../js/features/recent-jobs/state.js";
+export type { RecentJobsStatePort } from "../../../js/features/recent-jobs/state.js";
 export { createRecentJobActions } from "../../../js/features/recent-jobs/actions.js";
 export { createRecentJobsRuntimePort } from "../../../js/features/recent-jobs/job-runtime-port.js";
 export { createRecentJobsReaderPort } from "../../../js/features/recent-jobs/reader-port.js";

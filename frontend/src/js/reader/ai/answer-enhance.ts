@@ -201,7 +201,7 @@ export function neutralizeMarkdownAnchors(
 
   // 双保险：若仍有残留 a[href]（动态插入），捕获阶段一律拦截导航
   const host = container as Element;
-  if (host instanceof Element && !host.dataset.auiLinkGuard) {
+  if (host instanceof HTMLElement && !host.dataset.auiLinkGuard) {
     host.dataset.auiLinkGuard = "1";
     host.addEventListener(
       "click",

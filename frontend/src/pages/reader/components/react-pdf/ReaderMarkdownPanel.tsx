@@ -81,7 +81,7 @@ export function ReaderMarkdownPanel({
       }
       setStatus("正在加载 Markdown…");
       try {
-        const payload = await defaultReaderDataPort.loadMarkdownPayload(jobId);
+        const payload = (await defaultReaderDataPort.loadMarkdownPayload(jobId)) as Record<string, any>;
         if (cancelled) return;
         const content = `${payload?.content_with_absolute_image_urls || payload?.content || ""}`;
         const imagesBaseUrl = `${payload?.images_base_url || payload?.images_base_path || ""}`.trim();

@@ -10,7 +10,7 @@ export function ReaderReactBoot({
   failed,
   text,
   percent,
-}: ReaderReactBootProps): JSX.Element | null {
+}: ReaderReactBootProps): React.ReactNode {
   if (!loading && !failed) {
     return null;
   }

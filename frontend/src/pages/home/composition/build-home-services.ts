@@ -6,6 +6,7 @@ import type {
   HomeServices,
   HomeServicesDomains,
   HomeServicesViews,
+  LibraryCardItem,
 } from "./types.js";
 
 export function buildHomeServices({
@@ -77,11 +78,12 @@ export function buildHomeServices({
           library.libraryController.selectJobForDetail(jobId, {
             findItem: (id) => {
               const items = library.recentJobsStatePort.getSnapshot().items || [];
-              return (
+              const match = (
                 items.find((row) => `${row?.job_id || ""}`.trim() === id)
                 || items.find((row) => `${row?.active_job_id || ""}`.trim() === id)
                 || null
               );
+              return match as unknown as LibraryCardItem | null;
             },
           });
         },

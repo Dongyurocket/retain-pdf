@@ -41,7 +41,7 @@ export function BookDetailOverviewTab({
   addedAt,
   memberCollections = [],
   ...titleMetaProps
-}) {
+}: any) {
   const sizeText = formatBytes(bytes);
   const dateText = formatDate(addedAt);
   return (

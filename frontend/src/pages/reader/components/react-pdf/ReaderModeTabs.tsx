@@ -21,7 +21,7 @@ export function ReaderModeTabs({
   mode,
   sourceOnly,
   onModeChange,
-}: ReaderModeTabsProps): JSX.Element {
+}: ReaderModeTabsProps) {
   return (
     <header className="reader-topbar reader-react-topbar">
       <div className="reader-tabs" role="tablist" aria-label="阅读模式">

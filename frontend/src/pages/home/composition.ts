@@ -62,7 +62,7 @@ export function createHomeComposition({
   fetchGlossaries = fetchGlossariesApi,
   submitUploadRequest = submitUploadRequestHttp,
   loadPersistedDeveloperConfig = () => safeLoad(loadDeveloperStoredConfig, {}),
-  loadPersistedBrowserConfig = () => safeLoad(loadBrowserStoredConfig, {}),
+  loadPersistedBrowserConfig = () => safeLoad(loadBrowserStoredConfig, loadBrowserStoredConfig()),
   validateOcrToken: validateOcrTokenOverride = null,
   validateDeepSeekToken: validateDeepSeekTokenOverride = validateDeepSeekToken,
   queryDeepSeekBalance: queryDeepSeekBalanceOverride = queryDeepSeekBalance,

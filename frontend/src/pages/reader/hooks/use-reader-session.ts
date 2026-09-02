@@ -140,7 +140,7 @@ function setBootProgress(
 }
 
 export function useReaderSession(): ReaderSessionState {
-  const jobId = useMemo(() => resolveReaderJobId(defaultReaderPageConfigPort), []);
+  const jobId = useMemo(() => defaultReaderPageConfigPort.readerJobId(), []);
   const documentId = useMemo(
     () => (jobId ? "" : resolveReaderDocumentId()),
     [jobId],
