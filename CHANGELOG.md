@@ -5,6 +5,21 @@
 
 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [SemVer](https://semver.org/lang/zh-CN/)。
 
+## [v4.2.1] - 2026-09-06
+
+### 修复
+
+- **Windows 上传文件名安全检查漏洞**：含反斜杠路径穿越的上传文件名（如 `..\..\evil.pdf`）在 Windows 上被静默截断为纯文件名而未被拒绝。现统一在路径解析前显式拒绝反斜杠，三平台行为一致。该问题仅影响 Windows 桌面端，macOS/Linux 与 Docker 部署原本即拒绝。
+- Windows 本机开发测试两例平台差异失败清零（`cargo test` 310/310 通过）。
+
+### 安装包
+
+- Windows：`RetainPDF-Windows-4.2.1-Setup.exe`（NSIS 安装包）
+- macOS：`RetainPDF-Mac-4.2.1.dmg`（Apple Silicon）
+- Linux：`RetainPDF-Linux-4.2.1.deb`
+
+[v4.2.1]: https://github.com/Dongyurocket/retain-pdf/releases/tag/v4.2.1
+
 ## [v4.2.0] - 2026-09-06
 
 ### 新增
