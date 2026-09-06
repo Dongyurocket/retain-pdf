@@ -97,11 +97,21 @@ def normalize_base_url(base_url: str) -> str:
 
 def hostname_from_base_url(base_url: str) -> str:
     parsed = urlparse(normalize_base_url(base_url))
-    return str(parsed.hostname or "").strip().lower()
+    if parsed.hostname:
+        return str(parsed.hostname).strip().lower()
+    parsed_raw = urlparse(base_url or "")
+    return str(parsed_raw.hostname or "").strip().lower()
 
 
 def chat_completions_url(base_url: str) -> str:
     return f"{normalize_base_url(base_url)}/chat/completions"
+
+
+def resolve_request_url(*, url: str = "", base_url: str = "") -> str:
+    url_stripped = (url or "").strip()
+    if url_stripped:
+        return url_stripped
+    return chat_completions_url(base_url)
 
 
 def build_headers(api_key: str) -> dict[str, str]:

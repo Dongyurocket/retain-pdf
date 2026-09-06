@@ -1,8 +1,11 @@
 from __future__ import annotations
+from contextlib import contextmanager
+from dataclasses import dataclass, field
 import json
 import os
 import re
 import socket
+import threading
 import time
 from typing import Any
 
@@ -27,6 +30,63 @@ STREAM_RESPONSES_ENV = "PDF_TRANSLATOR_DEEPSEEK_STREAM"
 HTTP_RETRY_ATTEMPTS = transport.HTTP_RETRY_ATTEMPTS
 DNS_RETRY_MIN_ATTEMPTS = transport.DNS_RETRY_MIN_ATTEMPTS
 HTTP_RATE_LIMIT_WAIT_MAX_SECS = transport.HTTP_RATE_LIMIT_WAIT_MAX_SECS
+
+
+@dataclass
+class ActiveLlmConfig:
+    url: str = ""
+    temperature: float | None = None
+    top_p: float | None = None
+    timeout: int | None = None
+    max_attempts: int | None = None
+    reasoning_effort: str = ""
+    extra_body: dict[str, Any] = field(default_factory=dict)
+
+
+_ACTIVE_LLM_CONFIG_LOCK = threading.Lock()
+_ACTIVE_LLM_CONFIG: ActiveLlmConfig | None = None
+
+
+def get_active_llm_config() -> ActiveLlmConfig | None:
+    with _ACTIVE_LLM_CONFIG_LOCK:
+        return _ACTIVE_LLM_CONFIG
+
+
+def set_active_llm_config(config: ActiveLlmConfig | None) -> None:
+    global _ACTIVE_LLM_CONFIG
+    with _ACTIVE_LLM_CONFIG_LOCK:
+        _ACTIVE_LLM_CONFIG = config
+
+
+@contextmanager
+def active_llm_config_scope(
+    *,
+    url: str = "",
+    temperature: float | None = None,
+    top_p: float | None = None,
+    timeout: int | None = None,
+    max_attempts: int | None = None,
+    reasoning_effort: str = "",
+    extra_body: dict[str, Any] | None = None,
+):
+    global _ACTIVE_LLM_CONFIG
+    new_config = ActiveLlmConfig(
+        url=(url or "").strip(),
+        temperature=temperature,
+        top_p=top_p,
+        timeout=timeout,
+        max_attempts=max_attempts,
+        reasoning_effort=(reasoning_effort or "").strip(),
+        extra_body=dict(extra_body or {}),
+    )
+    with _ACTIVE_LLM_CONFIG_LOCK:
+        previous = _ACTIVE_LLM_CONFIG
+        _ACTIVE_LLM_CONFIG = new_config
+    try:
+        yield new_config
+    finally:
+        with _ACTIVE_LLM_CONFIG_LOCK:
+            _ACTIVE_LLM_CONFIG = previous
 
 
 def _env_int(name: str, default: int, *, minimum: int = 1) -> int:
@@ -244,8 +304,31 @@ def request_chat_content(
     timeout: int = 120,
     request_label: str = "",
     max_attempts: int | None = None,
+    url: str = "",
+    top_p: float | None = None,
+    reasoning_effort: str = "",
+    extra_body: dict[str, Any] | None = None,
 ) -> str:
     last_error: Exception | None = None
+    active_config = get_active_llm_config()
+    if active_config is not None:
+        if not url and active_config.url:
+            url = active_config.url
+        if active_config.temperature is not None and temperature == 0.2:
+            temperature = active_config.temperature
+        if top_p is None and active_config.top_p is not None:
+            top_p = active_config.top_p
+        if active_config.timeout is not None and timeout == 120:
+            timeout = active_config.timeout
+        if max_attempts is None and active_config.max_attempts is not None:
+            max_attempts = active_config.max_attempts
+        if not reasoning_effort and active_config.reasoning_effort:
+            reasoning_effort = active_config.reasoning_effort
+        if active_config.extra_body:
+            merged_extra = dict(active_config.extra_body)
+            if extra_body:
+                merged_extra.update(extra_body)
+            extra_body = merged_extra
     request_stage = infer_stage_from_request_label(request_label)
     diagnostics = get_active_translation_run_diagnostics()
     active_response_format = response_format
@@ -261,6 +344,14 @@ def request_chat_content(
         "temperature": temperature,
         "messages": messages,
     }
+    if top_p is not None:
+        body["top_p"] = top_p
+    if reasoning_effort and reasoning_effort != "auto":
+        body["reasoning_effort"] = reasoning_effort
+    if extra_body:
+        for k, v in extra_body.items():
+            if k not in body:
+                body[k] = v
     use_stream = should_use_stream_responses()
     if use_stream:
         body["stream"] = True
@@ -284,14 +375,15 @@ def request_chat_content(
                     timeout_s=timeout,
                     attempt=attempt,
                 )
-            _prewarm_dns(base_url, request_label=request_label)
+            target_url = transport.resolve_request_url(url=url, base_url=base_url)
+            _prewarm_dns(url or base_url, request_label=request_label)
             if request_label:
                 print(
-                    f"{request_label}: http attempt {attempt}/{attempt_limit} -> {model} {chat_completions_url(base_url)} timeout={timeout}s stream={use_stream}",
+                    f"{request_label}: http attempt {attempt}/{attempt_limit} -> {model} {target_url} timeout={timeout}s stream={use_stream}",
                     flush=True,
                 )
             response = get_session().post(
-                chat_completions_url(base_url),
+                target_url,
                 headers=build_headers(api_key),
                 json=body,
                 timeout=timeout,

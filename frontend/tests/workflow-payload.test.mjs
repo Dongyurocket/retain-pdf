@@ -84,6 +84,37 @@ test("buildTranslationPayload falls back to developer glossary id", () => {
   assert.equal(payload.skip_title_translation, true);
 });
 
+test("buildTranslationPayload maps custom model URL, temperature, topP, and reasoning parameters", () => {
+  const payload = buildTranslationPayload({
+    developerConfig: developerConfig({
+      url: "https://my-proxy.com/v1/chat/completions",
+      temperature: 0.5,
+      topP: 0.9,
+      timeoutSeconds: 180,
+      maxRetries: 3,
+      reasoningEffort: "medium",
+      customRulesText: "保持专业词汇英文原文",
+      translationMode: "sci",
+      contextMode: "needed",
+      glossaryMode: "matched",
+    }),
+    modelApiKey: "sk-custom",
+    selectedGlossaryId: "",
+    constants,
+  });
+
+  assert.equal(payload.url, "https://my-proxy.com/v1/chat/completions");
+  assert.equal(payload.temperature, 0.5);
+  assert.equal(payload.top_p, 0.9);
+  assert.equal(payload.timeout_seconds, 180);
+  assert.equal(payload.max_retries, 3);
+  assert.equal(payload.reasoning_effort, "medium");
+  assert.equal(payload.custom_rules_text, "保持专业词汇英文原文");
+  assert.equal(payload.mode, "sci");
+  assert.equal(payload.context_mode, "needed");
+  assert.equal(payload.glossary_mode, "matched");
+});
+
 test("buildOcrPayload maps provider token field and paddle api url", () => {
   const payload = buildOcrPayload({
     pageRanges: "1-3",

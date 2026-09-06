@@ -21,6 +21,7 @@ export const GLOSSARY_DOM_IDS = Object.freeze({
   entriesEmpty: "glossary-entries-empty",
   importPanel: "glossary-import-panel",
   csvText: "glossary-csv-text",
+  importFileInput: "glossary-import-file",
   importApplyButton: "glossary-import-apply-btn",
   importCancelButton: "glossary-import-cancel-btn",
   status: "glossary-status",

@@ -504,13 +504,23 @@ if (fs.existsSync(desktopIconSource)) {
   }
 }
 
+function safeCleanDir(targetDir) {
+  try {
+    fs.rmSync(targetDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+  } catch (err) {
+    if (err?.code !== "EPERM" && err?.code !== "EBUSY") {
+      throw err;
+    }
+  }
+}
+
 if (frontendOnly) {
-  fs.rmSync(outputFrontendRoot, { recursive: true, force: true });
+  safeCleanDir(outputFrontendRoot);
   fs.mkdirSync(appRoot, { recursive: true });
   fs.mkdirSync(outputFrontendRoot, { recursive: true });
   fs.mkdirSync(outputFrontendVendorRoot, { recursive: true });
 } else {
-  fs.rmSync(appRoot, { recursive: true, force: true });
+  safeCleanDir(appRoot);
   fs.mkdirSync(outputFrontendRoot, { recursive: true });
   fs.mkdirSync(outputFrontendVendorRoot, { recursive: true });
   fs.mkdirSync(outputBackendRoot, { recursive: true });

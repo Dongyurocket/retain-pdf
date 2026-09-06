@@ -9,6 +9,7 @@ export {
   defaultModelApiKey,
   defaultModelBaseUrl,
   defaultModelName,
+  defaultModelUrl,
   defaultOcrProvider,
   defaultPaddleApiUrl,
   defaultPaddleToken,
@@ -29,7 +30,30 @@ export {
   savePersistedDeveloperStoredConfig,
 } from "../../../js/config/persisted-config.js";
 export { openDesktopOutputDirectory } from "../../../js/config/desktop-persistence.js";
-export { DEFAULT_MODEL_VERSION } from "../../../js/config/model-constants.js";
+export {
+  DEFAULT_MODEL,
+  DEFAULT_BASE_URL,
+  DEFAULT_MODEL_URL,
+  DEFAULT_MODEL_VERSION,
+  DEFAULT_TEMPERATURE,
+  DEFAULT_TOP_P,
+  DEFAULT_MAX_RETRIES,
+  DEFAULT_REASONING_EFFORT,
+  DEFAULT_TRANSLATION_MODE,
+  DEFAULT_MATH_MODE,
+  DEFAULT_CONTEXT_MODE,
+  DEFAULT_GLOSSARY_MODE,
+  TEMPERATURE_OPTIONS,
+  TOP_P_OPTIONS,
+  TIMEOUT_OPTIONS,
+  RETRY_OPTIONS,
+  REASONING_EFFORT_OPTIONS,
+  TRANSLATION_MODE_OPTIONS,
+  MATH_MODE_OPTIONS,
+  WORKERS_OPTIONS,
+  CONTEXT_MODE_OPTIONS,
+  GLOSSARY_MODE_OPTIONS,
+} from "../../../js/config/model-constants.js";
 export {
   getOcrProviderDefinition,
   normalizeOcrOptions,

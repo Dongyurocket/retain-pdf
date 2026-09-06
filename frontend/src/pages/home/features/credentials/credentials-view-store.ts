@@ -132,7 +132,18 @@ export function createCredentialsViewFeature({
     apiKeyInput: null,
     modelBaseUrlInput: null,
     modelNameInput: null,
+    modelUrlInput: null,
     mathModeSelect: null,
+    temperatureSelect: null,
+    topPSelect: null,
+    timeoutSelect: null,
+    maxRetriesSelect: null,
+    reasoningEffortSelect: null,
+    translationModeSelect: null,
+    workersSelect: null,
+    contextModeSelect: null,
+    glossaryModeSelect: null,
+    customRulesInput: null,
     tokenInputs: {}, // { [providerId]: HTMLInputElement }
     optionInputs: {}, // { [providerId]: { [optionKey]: HTMLInputElement | HTMLSelectElement } }
   };
@@ -145,7 +156,18 @@ export function createCredentialsViewFeature({
       apiKeyInput: elementsRef.apiKeyInput,
       modelBaseUrlInput: elementsRef.modelBaseUrlInput,
       modelNameInput: elementsRef.modelNameInput,
+      modelUrlInput: elementsRef.modelUrlInput,
       mathModeSelect: elementsRef.mathModeSelect,
+      temperatureSelect: elementsRef.temperatureSelect,
+      topPSelect: elementsRef.topPSelect,
+      timeoutSelect: elementsRef.timeoutSelect,
+      maxRetriesSelect: elementsRef.maxRetriesSelect,
+      reasoningEffortSelect: elementsRef.reasoningEffortSelect,
+      translationModeSelect: elementsRef.translationModeSelect,
+      workersSelect: elementsRef.workersSelect,
+      contextModeSelect: elementsRef.contextModeSelect,
+      glossaryModeSelect: elementsRef.glossaryModeSelect,
+      customRulesInput: elementsRef.customRulesInput,
     };
   }
 

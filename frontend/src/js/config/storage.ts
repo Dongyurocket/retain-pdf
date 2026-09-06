@@ -14,13 +14,30 @@ export interface BrowserStoredConfig {
   mineruToken: string;
   ocrOptions: OcrOptionsMap;
   modelApiKey: string;
+  model?: string;
+  baseUrl?: string;
+  url?: string;
+  translationOptions?: Record<string, unknown>;
   [key: string]: unknown;
 }
 
-/** Developer model overrides (optional model / baseUrl plus future keys). */
+/** Developer model overrides (optional model / baseUrl / url / options plus future keys). */
 export interface DeveloperStoredConfig {
   model?: string;
   baseUrl?: string;
+  url?: string;
+  temperature?: number;
+  topP?: number;
+  timeoutSeconds?: number;
+  maxRetries?: number;
+  reasoningEffort?: string;
+  customRulesText?: string;
+  mathMode?: string;
+  translationMode?: string;
+  workers?: number;
+  contextMode?: string;
+  glossaryMode?: string;
+  translationOptions?: Record<string, unknown>;
   [key: string]: unknown;
 }
 
@@ -35,9 +52,11 @@ export interface RuntimeConfig {
   modelApiKey?: string;
   model?: string;
   baseUrl?: string;
+  url?: string;
   apiBase?: string;
   xApiKey?: string;
   paddleApiUrl?: string;
+  translationOptions?: Record<string, unknown>;
   developerConfig?: DeveloperStoredConfig;
   [key: string]: unknown;
 }
@@ -88,6 +107,12 @@ export function normalizeBrowserStoredConfig(
     mineruToken: typeof source.mineruToken === "string" ? source.mineruToken : "",
     ocrOptions: normalizeOcrOptionsMap(source.ocrOptions) as OcrOptionsMap,
     modelApiKey: typeof source.modelApiKey === "string" ? source.modelApiKey : "",
+    model: typeof source.model === "string" ? source.model.trim() : undefined,
+    baseUrl: typeof source.baseUrl === "string" ? source.baseUrl.trim() : undefined,
+    url: typeof source.url === "string" ? source.url.trim() : undefined,
+    translationOptions: isObject(source.translationOptions)
+      ? { ...(source.translationOptions as Record<string, unknown>) }
+      : undefined,
   };
 }
 
@@ -107,6 +132,10 @@ export function desktopRuntimeToBrowserConfig(
     mineruToken: source.mineruToken as string | undefined,
     ocrOptions: source.ocrOptions,
     modelApiKey: source.modelApiKey as string | undefined,
+    model: source.model as string | undefined,
+    baseUrl: source.baseUrl as string | undefined,
+    url: source.url as string | undefined,
+    translationOptions: source.translationOptions as Record<string, unknown> | undefined,
   });
 }
 
@@ -130,6 +159,16 @@ export function buildRuntimeConfig(
   }
   if (typeof nextDeveloperConfig.baseUrl === "string" && nextDeveloperConfig.baseUrl.trim()) {
     nextRuntimeConfig.baseUrl = nextDeveloperConfig.baseUrl.trim();
+  }
+  if (typeof nextDeveloperConfig.url === "string" && nextDeveloperConfig.url.trim()) {
+    nextRuntimeConfig.url = nextDeveloperConfig.url.trim();
+  } else if (typeof nextBrowserConfig.url === "string" && nextBrowserConfig.url.trim()) {
+    nextRuntimeConfig.url = nextBrowserConfig.url.trim();
+  }
+  if (nextDeveloperConfig.translationOptions && isObject(nextDeveloperConfig.translationOptions)) {
+    nextRuntimeConfig.translationOptions = { ...nextDeveloperConfig.translationOptions };
+  } else if (nextBrowserConfig.translationOptions && isObject(nextBrowserConfig.translationOptions)) {
+    nextRuntimeConfig.translationOptions = { ...nextBrowserConfig.translationOptions };
   }
   return nextRuntimeConfig;
 }

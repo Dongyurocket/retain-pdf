@@ -5,6 +5,21 @@
 
 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [SemVer](https://semver.org/lang/zh-CN/)。
 
+## [v4.2.0] - 2026-09-06
+
+### 新增
+
+- **自定义翻译模型与推理参数（设置 → API 设置）**：翻译模型卡片升级为通用配置——可自由填写模型名称、API 密钥、基础 API 地址（Base URL，自动拼接 `/chat/completions`）与可选的完整请求端点（Full URL，填写后优先直连该地址），兼容 DeepSeek 官方及任意 OpenAI 兼容网关/中转。任务选项新增可回默认值的高级参数区：采样温度（0.0/0.2/0.5/0.7/1.0 预设，默认 0.2）、核采样 Top P（默认 1.0）、单次请求超时（默认 120 秒）、失败重试次数（默认 2）、思考/推理强度（auto/disabled/low/medium/high）、翻译模式、公式模式、并发线程数、上下文与术语注入策略，以及多行自定义翻译规则（直接注入系统指令）。全部参数一键恢复默认，保存后本机持久生效。
+- **术语表快速导入（设置 → 词表）**：词表导入面板支持直接选择或拖放 `.csv` / `.txt` 文件读取内容；解析器新增制表符分隔（Tab）TXT 文本识别（可直接粘贴自 Excel）、UTF-8 BOM 剥离，并继续兼容带中英文表头或无表头的 CSV。面板内置 CSV 与 TXT 两份标准模板样例，一键下载后填充即可导入。
+
+### 安装包
+
+- Windows：`RetainPDF-Windows-4.2.0-Setup.exe`（NSIS 安装包）
+- macOS：`RetainPDF-Mac-4.2.0.dmg`（Apple Silicon）
+- Linux：`RetainPDF-Linux-4.2.0.deb`
+
+[v4.2.0]: https://github.com/Dongyurocket/retain-pdf/releases/tag/v4.2.0
+
 ## [v4.1.13] - 2026-09-02
 
 ### 修复
@@ -20,6 +35,8 @@
 - Linux：`RetainPDF-Linux-4.1.13.deb`
 
 [v4.1.13]: https://github.com/Dongyurocket/retain-pdf/releases/tag/v4.1.13
+
+## [v4.1.12] - 2026-08-26
 
 ### 新增
 

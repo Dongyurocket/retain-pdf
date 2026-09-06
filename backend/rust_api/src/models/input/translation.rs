@@ -59,6 +59,20 @@ pub struct TranslationInput {
     #[serde(default)]
     pub base_url: String,
     #[serde(default)]
+    pub url: String,
+    #[serde(default)]
+    pub temperature: Option<f64>,
+    #[serde(default)]
+    pub top_p: Option<f64>,
+    #[serde(default)]
+    pub timeout_seconds: Option<i64>,
+    #[serde(default)]
+    pub max_retries: Option<i64>,
+    #[serde(default)]
+    pub reasoning_effort: Option<String>,
+    #[serde(default)]
+    pub options: std::collections::BTreeMap<String, serde_json::Value>,
+    #[serde(default)]
     pub start_page: i64,
     #[serde(default = "default_end_page")]
     pub end_page: i64,
@@ -89,6 +103,13 @@ impl Default for TranslationInput {
             api_key: String::new(),
             model: String::new(),
             base_url: String::new(),
+            url: String::new(),
+            temperature: None,
+            top_p: None,
+            timeout_seconds: None,
+            max_retries: None,
+            reasoning_effort: None,
+            options: std::collections::BTreeMap::new(),
             start_page: 0,
             end_page: default_end_page(),
             batch_size: default_batch_size(),

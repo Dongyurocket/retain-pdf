@@ -155,6 +155,22 @@ export function defaultModelBaseUrl() {
     : DEFAULT_BASE_URL;
 }
 
+export function defaultModelUrl() {
+  return typeof runtimeConfig.url === "string" && runtimeConfig.url.trim()
+    ? runtimeConfig.url.trim()
+    : "";
+}
+
+export function defaultTranslationOptions(): Record<string, unknown> {
+  return (
+    typeof runtimeConfig.translationOptions === "object" &&
+    runtimeConfig.translationOptions !== null &&
+    !Array.isArray(runtimeConfig.translationOptions)
+      ? { ...runtimeConfig.translationOptions }
+      : {}
+  );
+}
+
 export function setRuntimeConfig(nextConfig = {}) {
   runtimeConfig = {
     ...runtimeConfig,

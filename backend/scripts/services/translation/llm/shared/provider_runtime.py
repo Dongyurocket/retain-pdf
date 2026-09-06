@@ -2,6 +2,11 @@ from __future__ import annotations
 
 """Stable adapter from shared orchestration to the active translation provider."""
 
+from services.translation.llm.providers.deepseek.client import (
+    active_llm_config_scope,
+    get_active_llm_config,
+    set_active_llm_config,
+)
 from services.translation.llm.shared.provider_registry import resolve_active_provider_runtime
 from services.translation.llm.shared.response_parsing import extract_json_text
 from services.translation.llm.shared.response_parsing import extract_single_item_translation_text
@@ -54,5 +59,8 @@ __all__ = [
     "translate_single_item_plain_text_unstructured",
     "translate_single_item_tagged_text",
     "translate_single_item_with_decision",
+    "active_llm_config_scope",
+    "get_active_llm_config",
+    "set_active_llm_config",
     "unwrap_translation_shell",
 ]

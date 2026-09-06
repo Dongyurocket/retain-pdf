@@ -7,6 +7,15 @@ export interface WorkflowDeveloperConfig {
   mathMode?: string;
   model?: string;
   baseUrl?: string;
+  url?: string;
+  temperature?: number;
+  topP?: number;
+  maxRetries?: number;
+  reasoningEffort?: string;
+  translationMode?: string;
+  contextMode?: string;
+  glossaryMode?: string;
+  customRulesText?: string;
   glossaryId?: string;
   workers?: number;
   batchSize?: number;
@@ -117,8 +126,8 @@ export function buildTranslationPayload({
   selectedGlossaryId,
   constants,
 }: BuildTranslationPayloadOptions) {
-  return {
-    mode: constants.DEFAULT_MODE,
+  const payload: Record<string, unknown> = {
+    mode: developerConfig.translationMode || constants.DEFAULT_MODE,
     math_mode: developerConfig.mathMode,
     model: developerConfig.model,
     base_url: developerConfig.baseUrl,
@@ -127,11 +136,36 @@ export function buildTranslationPayload({
     batch_size: developerConfig.batchSize,
     classify_batch_size: developerConfig.classifyBatchSize,
     rule_profile_name: constants.DEFAULT_RULE_PROFILE,
-    custom_rules_text: "",
+    custom_rules_text: developerConfig.customRulesText || "",
     glossary_id: selectedGlossaryId || developerConfig.glossaryId || "",
     glossary_entries: [],
     skip_title_translation: !developerConfig.translateTitles,
   };
+  if (developerConfig.url) {
+    payload.url = developerConfig.url;
+  }
+  if (typeof developerConfig.temperature === "number") {
+    payload.temperature = developerConfig.temperature;
+  }
+  if (typeof developerConfig.topP === "number") {
+    payload.top_p = developerConfig.topP;
+  }
+  if (typeof developerConfig.timeoutSeconds === "number") {
+    payload.timeout_seconds = developerConfig.timeoutSeconds;
+  }
+  if (typeof developerConfig.maxRetries === "number") {
+    payload.max_retries = developerConfig.maxRetries;
+  }
+  if (developerConfig.reasoningEffort && developerConfig.reasoningEffort !== "auto") {
+    payload.reasoning_effort = developerConfig.reasoningEffort;
+  }
+  if (developerConfig.contextMode) {
+    payload.context_mode = developerConfig.contextMode;
+  }
+  if (developerConfig.glossaryMode) {
+    payload.glossary_mode = developerConfig.glossaryMode;
+  }
+  return payload;
 }
 
 export function buildRenderPayload({ developerConfig, constants }: BuildRenderPayloadOptions) {

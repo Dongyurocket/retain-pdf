@@ -170,7 +170,18 @@ export type CredentialsElementsRef = {
   apiKeyInput: HTMLInputElement | null;
   modelBaseUrlInput: HTMLInputElement | null;
   modelNameInput: HTMLInputElement | null;
+  modelUrlInput: HTMLInputElement | null;
   mathModeSelect: HTMLSelectElement | null;
+  temperatureSelect: HTMLSelectElement | null;
+  topPSelect: HTMLSelectElement | null;
+  timeoutSelect: HTMLSelectElement | null;
+  maxRetriesSelect: HTMLSelectElement | null;
+  reasoningEffortSelect: HTMLSelectElement | null;
+  translationModeSelect: HTMLSelectElement | null;
+  workersSelect: HTMLSelectElement | null;
+  contextModeSelect: HTMLSelectElement | null;
+  glossaryModeSelect: HTMLSelectElement | null;
+  customRulesInput: HTMLTextAreaElement | null;
   tokenInputs: Record<string, HTMLInputElement | null | undefined>;
   optionInputs: Record<string, Record<string, HTMLInputElement | HTMLSelectElement | null | undefined>>;
 };

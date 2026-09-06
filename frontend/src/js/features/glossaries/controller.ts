@@ -191,11 +191,12 @@ export function mountGlossariesFeature({
   async function applyImport() {
     const csvText = viewPort.readCsvText();
     if (!csvText.trim()) {
-      viewPort.setStatus("请先粘贴 CSV 内容。", "error");
+      viewPort.setStatus("请先粘贴 CSV/TXT 内容或选择文件。", "error");
       return;
     }
-    viewPort.setStatus("正在解析 CSV...");
+    viewPort.setStatus("正在解析术语表内容...");
     try {
+      // 复用现有后端解析接口（已支持 CSV 及制表符分隔的 TXT）
       const payload = await parseGlossaryCsv(apiPrefix, csvText);
       renderDraft({
         ...viewPort.readEditorPayload(),

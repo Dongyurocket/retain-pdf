@@ -122,7 +122,7 @@ pub fn delete_glossary(db: &Db, glossary_id: &str) -> Result<(), AppError> {
 pub fn parse_glossary_csv(
     input: &GlossaryCsvParseInput,
 ) -> Result<Vec<GlossaryEntryInput>, AppError> {
-    parse_glossary_csv_text(&input.csv_text)
+    parse_glossary_text(&input.csv_text)
 }
 
 pub fn resolve_task_glossary_request(
@@ -264,6 +264,101 @@ fn normalize_glossary_lang(value: &str) -> Result<String, AppError> {
     Ok(normalized.to_string())
 }
 
+fn parse_glossary_text(text: &str) -> Result<Vec<GlossaryEntryInput>, AppError> {
+    let text = text.trim_start_matches('\u{feff}');
+    let has_tabs = text.lines().any(|line| line.contains('\t'));
+    let has_commas = text.contains(',');
+    
+    if has_tabs && (!has_commas || text.lines().next().map(|l| l.matches('\t').count() > l.matches(',').count()).unwrap_or(false)) {
+        // TSV/Tab-separated text parsing (e.g. copied from Excel or simple text file)
+        let mut entries = Vec::new();
+        let lines: Vec<&str> = text.lines().collect();
+        if lines.is_empty() {
+            return Ok(Vec::new());
+        }
+        
+        let header_row: Vec<String> = lines[0].split('\t').map(|s| s.trim().to_string()).collect();
+        let header_map = detect_csv_header_strings(&header_row);
+        let data_lines: &[&str] = if header_map.is_some() {
+            &lines[1..]
+        } else {
+            &lines
+        };
+        
+        for line in data_lines {
+            let cols: Vec<String> = line.split('\t').map(|s| s.trim().to_string()).collect();
+            if cols.iter().all(|s| s.trim().is_empty()) {
+                continue;
+            }
+            let entry = parse_txt_row(&cols, header_map.as_ref())?;
+            if let Some(entry) = entry {
+                entries.push(entry);
+            }
+        }
+        normalize_glossary_entries(&entries)
+    } else {
+        // Standard CSV parsing
+        parse_glossary_csv_text(text)
+    }
+}
+
+fn parse_txt_row(
+    cols: &[String],
+    header_map: Option<&GlossaryCsvHeader>,
+) -> Result<Option<GlossaryEntryInput>, AppError> {
+    let (source_idx, target_idx, note_idx, level_idx, match_mode_idx, context_idx) = header_map
+        .map(|header| {
+            (
+                header.source_idx,
+                header.target_idx,
+                header.note_idx,
+                header.level_idx,
+                header.match_mode_idx,
+                header.context_idx,
+            )
+        })
+        .unwrap_or((0, 1, Some(2), None, None, None));
+        
+    let get_cell = |idx: usize| -> String {
+        if idx < cols.len() {
+            sanitize_csv_cell(&cols[idx])
+        } else {
+            "".to_string()
+        }
+    };
+    
+    let get_opt_cell = |idx: Option<usize>| -> String {
+        idx.map(|i| get_cell(i)).unwrap_or_default()
+    };
+
+    let source = get_cell(source_idx);
+    let target = get_cell(target_idx);
+    let note = get_opt_cell(note_idx);
+    let level = if let Some(idx) = level_idx {
+        normalize_glossary_level(&get_cell(idx))
+    } else {
+        "preferred".to_string()
+    };
+    let match_mode = if let Some(idx) = match_mode_idx {
+        normalize_glossary_match_mode(&get_cell(idx))
+    } else {
+        "exact".to_string()
+    };
+    let context = get_opt_cell(context_idx);
+
+    if source.is_empty() && target.is_empty() && note.is_empty() {
+        return Ok(None);
+    }
+    Ok(Some(GlossaryEntryInput {
+        source,
+        target,
+        note,
+        level,
+        match_mode,
+        context,
+    }))
+}
+
 fn parse_glossary_csv_text(csv_text: &str) -> Result<Vec<GlossaryEntryInput>, AppError> {
     let mut reader = csv::ReaderBuilder::new()
         .has_headers(false)
@@ -374,7 +469,7 @@ struct GlossaryCsvHeader {
     context_idx: Option<usize>,
 }
 
-fn detect_csv_header(row: &csv::StringRecord) -> Option<GlossaryCsvHeader> {
+fn detect_csv_header_strings(row: &[String]) -> Option<GlossaryCsvHeader> {
     let mut source_idx = None;
     let mut target_idx = None;
     let mut note_idx = None;
@@ -414,6 +509,11 @@ fn detect_csv_header(row: &csv::StringRecord) -> Option<GlossaryCsvHeader> {
         }),
         _ => None,
     }
+}
+
+fn detect_csv_header(row: &csv::StringRecord) -> Option<GlossaryCsvHeader> {
+    let cols: Vec<String> = row.iter().map(|s| s.to_string()).collect();
+    detect_csv_header_strings(&cols)
 }
 
 fn dedupe_glossary_entries(entries: Vec<GlossaryEntryInput>) -> Vec<GlossaryEntryInput> {
@@ -620,6 +720,28 @@ mod tests {
         assert_eq!(entries[0].level, "preserve");
         assert_eq!(entries[0].match_mode, "case_insensitive");
         assert_eq!(entries[1].level, "canonical");
+    }
+
+    #[test]
+    fn parse_glossary_text_supports_txt_tab_separated() {
+        let input = "原词\t译文\t类型\t匹配模式\t备注\nKohn-Sham\t\t保留\t忽略大小写\tmethod name\nDFT\tdensity functional theory\t专业译法\texact\texpanded form";
+        let entries = parse_glossary_text(input).expect("parse tsv");
+
+        assert_eq!(entries.len(), 2);
+        assert_eq!(entries[0].source, "Kohn-Sham");
+        assert_eq!(entries[0].target, "Kohn-Sham");
+        assert_eq!(entries[0].level, "preserve");
+        assert_eq!(entries[1].target, "density functional theory");
+    }
+
+    #[test]
+    fn parse_glossary_text_supports_txt_no_header() {
+        let input = "ab initio\t从头算\nHartree-Fock\tHartree-Fock";
+        let entries = parse_glossary_text(input).expect("parse tsv without header");
+
+        assert_eq!(entries.len(), 2);
+        assert_eq!(entries[0].source, "ab initio");
+        assert_eq!(entries[0].target, "从头算");
     }
 
     #[test]

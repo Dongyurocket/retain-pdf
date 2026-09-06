@@ -18,6 +18,8 @@ function createDesktopConfigStore(app, options = {}) {
       modelApiKey: "",
       model: DEFAULT_MODEL,
       baseUrl: DEFAULT_BASE_URL,
+      url: "",
+      translationOptions: {},
       developerConfig: {},
       closeToTrayHintShown: false,
     };
@@ -56,6 +58,8 @@ function createDesktopConfigStore(app, options = {}) {
       ...buildBrowserConfig(config),
       model: config.model || DEFAULT_MODEL,
       baseUrl: config.baseUrl || DEFAULT_BASE_URL,
+      url: config.url || "",
+      translationOptions: config.translationOptions || {},
       developerConfig: config.developerConfig || {},
     };
   }
@@ -88,6 +92,10 @@ function buildBrowserConfig(config) {
     paddleToken: config.paddleToken || "",
     ocrOptions: normalizeOcrOptions(config.ocrOptions),
     modelApiKey: config.modelApiKey || "",
+    model: config.model || DEFAULT_MODEL,
+    baseUrl: config.baseUrl || DEFAULT_BASE_URL,
+    url: config.url || "",
+    translationOptions: config.translationOptions || {},
   };
 }
 
@@ -124,6 +132,8 @@ function normalizeDesktopConfig(raw = {}) {
     modelApiKey: "",
     model: DEFAULT_MODEL,
     baseUrl: DEFAULT_BASE_URL,
+    url: "",
+    translationOptions: {},
   };
   return {
     firstRunCompleted: !!raw.firstRunCompleted,
@@ -134,6 +144,10 @@ function normalizeDesktopConfig(raw = {}) {
     modelApiKey: normalizeTrimmedString(raw.modelApiKey, defaults.modelApiKey),
     model: normalizeTrimmedString(raw.model, defaults.model),
     baseUrl: normalizeTrimmedString(raw.baseUrl, defaults.baseUrl),
+    url: normalizeTrimmedString(raw.url, defaults.url),
+    translationOptions: typeof raw.translationOptions === "object" && raw.translationOptions !== null && !Array.isArray(raw.translationOptions)
+      ? { ...raw.translationOptions }
+      : {},
     developerConfig: typeof raw.developerConfig === "object" && raw.developerConfig !== null
       ? { ...raw.developerConfig }
       : {},
@@ -154,6 +168,8 @@ function mergeDesktopConfig(currentConfig, payload = {}) {
     "modelApiKey",
     "model",
     "baseUrl",
+    "url",
+    "translationOptions",
     "closeToTrayHintShown",
   ];
   for (const key of keys) {

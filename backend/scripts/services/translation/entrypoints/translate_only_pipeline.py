@@ -38,6 +38,7 @@ from services.translation.artifacts import write_translation_diagnostics
 from services.translation.artifacts import blocking_untranslated_items
 from services.translation.llm.shared.provider_runtime import DEFAULT_BASE_URL
 from services.translation.llm.shared.provider_runtime import get_api_key
+from services.translation.llm.shared.provider_runtime import active_llm_config_scope
 from services.translation.llm.shared.provider_runtime import normalize_base_url
 from services.translation.services.terms import parse_glossary_json
 from runtime.pipeline.render_preprocess import run_post_translation_render_prewarm
@@ -87,6 +88,13 @@ def _args_from_spec(spec: TranslateStageSpec) -> SimpleNamespace:
         api_key=resolve_credential_ref(spec.params.credential_ref),
         model=spec.params.model,
         base_url=spec.params.base_url,
+        url=spec.params.url,
+        temperature=spec.params.temperature,
+        top_p=spec.params.top_p,
+        timeout_seconds=spec.params.timeout_seconds,
+        max_retries=spec.params.max_retries,
+        reasoning_effort=spec.params.reasoning_effort,
+        options=spec.params.options,
         render_prewarm_output_pdf_path=spec.params.render_prewarm_output_pdf_path,
         render_prewarm_mode=spec.params.render_prewarm_mode,
         render_prewarm_pdf_compress_dpi=spec.params.render_prewarm_pdf_compress_dpi,
@@ -137,7 +145,16 @@ def main() -> None:
             message="开始准备纯翻译阶段",
         )
         started = time.perf_counter()
-        result = translate_book_pipeline(
+        with active_llm_config_scope(
+            url=getattr(args, "url", ""),
+            temperature=getattr(args, "temperature", None),
+            top_p=getattr(args, "top_p", None),
+            timeout=getattr(args, "timeout_seconds", None),
+            max_attempts=getattr(args, "max_retries", None),
+            reasoning_effort=getattr(args, "reasoning_effort", ""),
+            extra_body=getattr(args, "options", None) if isinstance(getattr(args, "options", None), dict) else None,
+        ):
+            result = translate_book_pipeline(
             source_json_path=source_json_path,
             output_dir=translations_dir,
             api_key=api_key,

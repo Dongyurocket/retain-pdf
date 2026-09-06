@@ -39,6 +39,22 @@ pub(super) fn apply_multipart_request_field(
         "api_key" => request.translation.api_key = value.to_string(),
         "model" => request.translation.model = value.to_string(),
         "base_url" => request.translation.base_url = value.to_string(),
+        "url" => request.translation.url = value.to_string(),
+        "temperature" => {
+            request.translation.temperature = Some(parse_f64_like(name, value)?)
+        }
+        "top_p" => {
+            request.translation.top_p = Some(parse_f64_like(name, value)?)
+        }
+        "max_retries" => {
+            request.translation.max_retries = Some(parse_i64_like(name, value)?)
+        }
+        "reasoning_effort" => {
+            request.translation.reasoning_effort = Some(value.to_string())
+        }
+        "translation_options" => {
+            request.translation.options = parse_json_object_field(name, value)?
+        }
         "render_mode" => request.render.render_mode = value.to_string(),
         "compile_workers" => request.render.compile_workers = parse_i64_like(name, value)?,
         "typst_font_family" => request.render.typst_font_family = value.to_string(),

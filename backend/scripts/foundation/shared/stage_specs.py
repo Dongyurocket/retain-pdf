@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -136,6 +136,25 @@ def _optional_path(value: Any) -> Path | None:
     return Path(value.strip()).resolve()
 
 
+def _optional_float(value: Any) -> float | None:
+    if value is None or value == "":
+        return None
+    try:
+        val = float(value)
+        return val if val == val else None
+    except (ValueError, TypeError):
+        return None
+
+
+def _optional_int(value: Any) -> int | None:
+    if value is None or value == "":
+        return None
+    try:
+        return int(value)
+    except (ValueError, TypeError):
+        return None
+
+
 def resolve_credential_ref(credential_ref: str) -> str:
     ref = (credential_ref or "").strip()
     if not ref:
@@ -185,6 +204,13 @@ class TranslateStageParams:
     render_prewarm_mode: str
     render_prewarm_pdf_compress_dpi: int
     render_prewarm_source_cleanup_strategy: str
+    url: str = ""
+    temperature: float | None = None
+    top_p: float | None = None
+    timeout_seconds: int | None = None
+    max_retries: int | None = None
+    reasoning_effort: str = ""
+    options: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -258,6 +284,13 @@ class TranslateStageSpec:
             render_prewarm_source_cleanup_strategy=str(
                 params_payload.get("render_prewarm_source_cleanup_strategy", "pikepdf_text_strip") or "pikepdf_text_strip"
             ).strip().lower(),
+            url=str(params_payload.get("url", "") or ""),
+            temperature=_optional_float(params_payload.get("temperature")),
+            top_p=_optional_float(params_payload.get("top_p")),
+            timeout_seconds=_optional_int(params_payload.get("timeout_seconds")),
+            max_retries=_optional_int(params_payload.get("max_retries")),
+            reasoning_effort=str(params_payload.get("reasoning_effort", "") or ""),
+            options=params_payload.get("options") if isinstance(params_payload.get("options"), dict) else {},
         )
         return cls(
             schema_version=schema_version,
@@ -425,6 +458,13 @@ class ProviderStageTranslationParams:
     model: str
     base_url: str
     credential_ref: str
+    url: str = ""
+    temperature: float | None = None
+    top_p: float | None = None
+    timeout_seconds: int | None = None
+    max_retries: int | None = None
+    reasoning_effort: str = ""
+    options: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -528,6 +568,13 @@ class ProviderStageSpec:
             model=str(translation_payload.get("model", "") or ""),
             base_url=str(translation_payload.get("base_url", "") or ""),
             credential_ref=str(translation_payload.get("credential_ref", "") or ""),
+            url=str(translation_payload.get("url", "") or ""),
+            temperature=_optional_float(translation_payload.get("temperature")),
+            top_p=_optional_float(translation_payload.get("top_p")),
+            timeout_seconds=_optional_int(translation_payload.get("timeout_seconds")),
+            max_retries=_optional_int(translation_payload.get("max_retries")),
+            reasoning_effort=str(translation_payload.get("reasoning_effort", "") or ""),
+            options=translation_payload.get("options") if isinstance(translation_payload.get("options"), dict) else {},
         )
         render = ProviderStageRenderParams(
             render_mode=str(render_payload.get("render_mode", "typst") or "typst"),
@@ -591,6 +638,13 @@ class BookStageTranslationParams:
     model: str
     base_url: str
     credential_ref: str
+    url: str = ""
+    temperature: float | None = None
+    top_p: float | None = None
+    timeout_seconds: int | None = None
+    max_retries: int | None = None
+    reasoning_effort: str = ""
+    options: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -675,6 +729,13 @@ class BookStageSpec:
             model=str(translation_payload.get("model", "") or ""),
             base_url=str(translation_payload.get("base_url", "") or ""),
             credential_ref=str(translation_payload.get("credential_ref", "") or ""),
+            url=str(translation_payload.get("url", "") or ""),
+            temperature=_optional_float(translation_payload.get("temperature")),
+            top_p=_optional_float(translation_payload.get("top_p")),
+            timeout_seconds=_optional_int(translation_payload.get("timeout_seconds")),
+            max_retries=_optional_int(translation_payload.get("max_retries")),
+            reasoning_effort=str(translation_payload.get("reasoning_effort", "") or ""),
+            options=translation_payload.get("options") if isinstance(translation_payload.get("options"), dict) else {},
         )
         render = BookStageRenderParams(
             render_mode=str(render_payload.get("render_mode", "typst") or "typst"),

@@ -128,6 +128,13 @@ pub(crate) fn write_translate_stage_spec(
             "memory_mode": request.translation.memory_mode,
             "model": request.translation.model,
             "base_url": request.translation.base_url,
+            "url": request.translation.url,
+            "temperature": request.translation.temperature,
+            "top_p": request.translation.top_p,
+            "timeout_seconds": request.translation.timeout_seconds,
+            "max_retries": request.translation.max_retries,
+            "reasoning_effort": request.translation.reasoning_effort,
+            "options": request.translation.options,
             "credential_ref": credential_ref,
             "render_prewarm_output_pdf_path": job_paths.rendered_dir.join(
                 if request.render.translated_pdf_name.trim().is_empty() {
@@ -191,6 +198,7 @@ pub(crate) fn write_render_stage_spec(
             "source_cleanup_strategy": request.render.source_cleanup_strategy,
             "model": request.translation.model,
             "base_url": request.translation.base_url,
+            "url": request.translation.url,
             "credential_ref": credential_ref,
         },
     });
@@ -269,6 +277,13 @@ pub(crate) fn write_provider_stage_spec(
             "memory_mode": request.translation.memory_mode,
             "model": request.translation.model,
             "base_url": request.translation.base_url,
+            "url": request.translation.url,
+            "temperature": request.translation.temperature,
+            "top_p": request.translation.top_p,
+            "timeout_seconds": request.translation.timeout_seconds,
+            "max_retries": request.translation.max_retries,
+            "reasoning_effort": request.translation.reasoning_effort,
+            "options": request.translation.options,
             "credential_ref": translation_credential_ref,
         },
         "render": {

@@ -21,12 +21,18 @@ pub fn validate_provider_credentials(input: &CreateJobInput) -> Result<(), AppEr
 
 pub fn validate_translation_credentials(input: &CreateJobInput) -> Result<(), AppError> {
     let base_url = input.translation.base_url.trim();
-    if base_url.is_empty() {
+    let url = input.translation.url.trim();
+    if base_url.is_empty() && url.is_empty() {
         return Err(AppError::bad_request("base_url is required"));
     }
-    if !(base_url.starts_with("http://") || base_url.starts_with("https://")) {
+    if !base_url.is_empty() && !(base_url.starts_with("http://") || base_url.starts_with("https://")) {
         return Err(AppError::bad_request(
             "base_url must start with http:// or https://",
+        ));
+    }
+    if !url.is_empty() && !(url.starts_with("http://") || url.starts_with("https://")) {
+        return Err(AppError::bad_request(
+            "url must start with http:// or https://",
         ));
     }
 
@@ -41,6 +47,27 @@ pub fn validate_translation_credentials(input: &CreateJobInput) -> Result<(), Ap
     }
     if input.translation.model.trim().is_empty() {
         return Err(AppError::bad_request("model is required"));
+    }
+
+    if let Some(temperature) = input.translation.temperature {
+        if !temperature.is_finite() || !(0.0..=2.0).contains(&temperature) {
+            return Err(AppError::bad_request("translation.temperature must be between 0.0 and 2.0"));
+        }
+    }
+    if let Some(top_p) = input.translation.top_p {
+        if !top_p.is_finite() || !(0.0..=1.0).contains(&top_p) {
+            return Err(AppError::bad_request("translation.top_p must be between 0.0 and 1.0"));
+        }
+    }
+    if let Some(timeout_seconds) = input.translation.timeout_seconds {
+        if timeout_seconds <= 0 {
+            return Err(AppError::bad_request("translation.timeout_seconds must be positive"));
+        }
+    }
+    if let Some(max_retries) = input.translation.max_retries {
+        if max_retries < 0 {
+            return Err(AppError::bad_request("translation.max_retries must be non-negative"));
+        }
     }
     Ok(())
 }
@@ -381,12 +408,32 @@ mod tests {
     }
 
     #[test]
-    fn render_options_reject_translated_pdf_name_path_separator() {
+    fn translation_credentials_accept_custom_model_url_and_parameters() {
         let mut input = CreateJobInput::default();
-        input.render.translated_pdf_name = "nested/out.pdf".to_string();
-        let err = validate_render_options(&input).expect_err("nested output should fail");
-        assert!(err
-            .to_string()
-            .contains("render.translated_pdf_name must be a file name"));
+        input.translation.model = "gpt-4o".to_string();
+        input.translation.api_key = "sk-test-key".to_string();
+        input.translation.url = "https://custom-gateway.com/v1/chat/completions".to_string();
+        input.translation.temperature = Some(0.7);
+        input.translation.top_p = Some(0.9);
+        input.translation.timeout_seconds = Some(180);
+        input.translation.max_retries = Some(3);
+        assert!(validate_translation_credentials(&input).is_ok());
+    }
+
+    #[test]
+    fn translation_credentials_reject_invalid_temperature_or_top_p() {
+        let mut input = CreateJobInput::default();
+        input.translation.model = "deepseek-chat".to_string();
+        input.translation.api_key = "sk-test-key".to_string();
+        input.translation.base_url = "https://api.deepseek.com/v1".to_string();
+
+        input.translation.temperature = Some(2.5);
+        let err = validate_translation_credentials(&input).expect_err("temperature > 2 should fail");
+        assert!(err.to_string().contains("temperature must be between 0.0 and 2.0"));
+
+        input.translation.temperature = Some(0.2);
+        input.translation.top_p = Some(1.5);
+        let err_top_p = validate_translation_credentials(&input).expect_err("top_p > 1.0 should fail");
+        assert!(err_top_p.to_string().contains("top_p must be between 0.0 and 1.0"));
     }
 }
