@@ -25,7 +25,7 @@ PDF 保留排版翻译全栈项目：扫描/图片型 PDF、行内公式渲染�
   - `python3 backend/scripts/devtools/check_pipeline_architecture.py`
   - `python3 backend/scripts/devtools/check_stage_specs_contract.py data/jobs`
 - 默认端口：Web 前端 40001、Rust API 41000、multipart 提交 42000（本地 Docker override 部署为 44001/44002/44003，见 `mcp/README.md`）。
-- 前端验证基线（2026-09-06）：`npm test` 共 738 项，733 通过、5 个存量失败；失败项与此前一致（架构边界 4 项、CSS 字面色值棘轮 1 项），本轮无新增失败。`npm run typecheck` 已清零（0 错误，exit code 0）。另观察到 Rust API 在 Windows 本机有 2 个存量测试失败（`worker_command` spec 路径分隔符断言、`store_pdf_upload` 反斜杠穿越断言），与代码变更无关，为平台差异类存量问题。
+- 前端验证基线（2026-09-06）：`npm test` 共 738 项，733 通过、5 个存量失败；失败项与此前一致（架构边界 4 项、CSS 字面色值棘轮 1 项），本轮无新增失败。`npm run typecheck` 已清零（0 错误，exit code 0）。Rust API Windows 本机 `cargo test` 310/310 全部通过（2026-09-06 修复两例平台差异存量失败：spec 路径分隔符断言改为平台无关断言、上传文件名反斜杠穿越在 `Path::file_name` 之前显式拒绝）。
 
 ## 本机部署事实（已验证）
 

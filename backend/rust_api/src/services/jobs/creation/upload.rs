@@ -23,8 +23,13 @@ pub(super) fn load_upload_or_404(db: &Db, upload_id: &str) -> Result<UploadRecor
 /// Reduces a client-supplied multipart filename to a bare file-name component
 /// so it can never be used to escape the per-upload directory (e.g. via
 /// `../../etc/x.pdf` or an absolute path like `/etc/x.pdf`).
+///
+/// Backslash handling is deliberately platform-independent: `Path::file_name`
+/// treats `\` as a separator only on Windows, so checking the raw input keeps
+/// `..\..\evil.pdf` rejected everywhere instead of being silently truncated to
+/// `evil.pdf` on Windows.
 fn sanitize_upload_filename(filename: &str) -> Result<PathBuf, AppError> {
-    if filename.contains('\0') {
+    if filename.contains('\0') || filename.contains('\\') {
         return Err(AppError::bad_request("uploaded filename is invalid"));
     }
     let candidate = Path::new(filename)
