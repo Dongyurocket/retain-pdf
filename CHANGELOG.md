@@ -5,6 +5,26 @@
 
 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [SemVer](https://semver.org/lang/zh-CN/)。
 
+## [v4.3.0] - 2026-09-09
+
+### 新增
+
+- **彻底重跑**：状态卡重试菜单新增「彻底重跑」——从 OCR 阶段重新执行，并完全绕过 OCR 与翻译缓存（bypass 期间缓存不读、不写，不污染既有缓存内容），用于排查缓存或上游 OCR 异常导致的坏结果。
+- 图书馆首页与合集页新增手动刷新按钮；书籍详情翻译页完成后显示结果操作（打开对照阅读等）。
+
+### 修复
+
+- 自定义 OpenAI 兼容翻译接口不支持余额查询时，不再因「余额未检测」阻塞提交：检测后提示「余额需自行确认」并放行，官方 DeepSeek 接口行为不变。
+- 书籍详情封面与操作可用性在书架投影延迟时不更新：详情现以文档详情接口的完成态资源作为回退来源。
+
+### 安装包
+
+- Windows：`RetainPDF-Windows-4.3.0-Setup.exe`（NSIS 安装包）
+- macOS：`RetainPDF-Mac-4.3.0.dmg`（Apple Silicon）
+- Linux：`RetainPDF-Linux-4.3.0.deb`
+
+[v4.3.0]: https://github.com/Dongyurocket/retain-pdf/releases/tag/v4.3.0
+
 ## [v4.2.2] - 2026-09-09
 
 ### 修复
