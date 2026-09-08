@@ -5,6 +5,22 @@
 
 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [SemVer](https://semver.org/lang/zh-CN/)。
 
+## [v4.2.2] - 2026-09-09
+
+### 修复
+
+- **含超链接页面翻译后整页变蓝/变红**：部分 PDF（InDesign 等导出）用 Tr 7 文字裁剪路径把链接高亮矩形裁剪到文字字形；源文字剥离删除链接文字后，高亮矩形失去裁剪并无界铺开，导致整页铺满高亮色。现在剥离引擎跟踪 Tr 4–7 文字删除位置，并同步丢弃其 q..Q 作用域内失去裁剪的路径绘制。
+- **目录译文错位、双编号/双页码**：目录条目译文对齐误用条目序号而非源行号，任一条目解析缺失（如表头残行）后全部错位。现按源行号（`line_index`）对齐译文行；译文行数与源行数不一致时回退保留原标题，不再强行错位配对。
+- 输出 PDF 不再残留原文链接注释（`strip_page_links` 原为空实现，现真正删除），避免译文页链接跳转到原文错误位置。
+
+### 安装包
+
+- Windows：`RetainPDF-Windows-4.2.2-Setup.exe`（NSIS 安装包）
+- macOS：`RetainPDF-Mac-4.2.2.dmg`（Apple Silicon）
+- Linux：`RetainPDF-Linux-4.2.2.deb`
+
+[v4.2.2]: https://github.com/Dongyurocket/retain-pdf/releases/tag/v4.2.2
+
 ## [v4.2.1] - 2026-09-06
 
 ### 修复
