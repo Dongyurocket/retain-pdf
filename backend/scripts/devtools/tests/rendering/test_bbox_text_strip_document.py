@@ -1227,3 +1227,97 @@ def test_estimated_text_rect_uses_font_size_from_text_state() -> None:
     assert rect[1] < 40.0
     assert rect[2] >= 44.0
     assert rect[3] > 50.0
+
+
+def _blue_pixel_ratio(page: fitz.Page) -> float:
+    pix = page.get_pixmap(matrix=fitz.Matrix(0.5, 0.5), colorspace=fitz.csRGB, alpha=False)
+    samples = pix.samples
+    total = pix.width * pix.height
+    blue = 0
+    for offset in range(0, total * 3, 3):
+        r, g, b = samples[offset], samples[offset + 1], samples[offset + 2]
+        if b > 110 and b > r + 40 and b > g + 25:
+            blue += 1
+    return blue / total
+
+
+def test_bbox_text_strip_drops_link_highlight_fill_after_tr7_text_removal() -> None:
+    """Tr 7 clipped link-highlight fills must not repaint unbounded after text strip.
+
+    InDesign-style exports wrap every hyperlink in ``q 7 Tr BT ..(label)Tj.. ET``
+    so the following page-spanning fill is clipped to the link glyphs. Removing
+    the label without dropping the fill makes the highlight cover the full page.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        source_pdf = root / "source.pdf"
+        output_pdf = root / "stripped.pdf"
+        doc = fitz.open()
+        page = doc.new_page(width=612, height=792)
+        page.insert_text((72, 72), "Visible heading", fontsize=12)
+        link_highlight = (
+            b"q 7 Tr\n"
+            b"BT /helv 12 Tf 1 0 0 1 527 87 Tm (77) Tj ET\n"
+            b"0.129 0.298 0.808 rg\n"
+            b"-88888 -88888 99999 99999 re f\n"
+            b"0 Tr Q\n"
+        )
+        content_xrefs = page.get_contents()
+        assert content_xrefs
+        existing = b""
+        for xref in content_xrefs:
+            existing += doc.xref_stream(xref)
+        doc.update_stream(content_xrefs[0], existing + b"\n" + link_highlight)
+        doc.save(source_pdf)
+        doc.close()
+
+        probe = fitz.open(source_pdf)
+        try:
+            assert _blue_pixel_ratio(probe[0]) < 0.05
+        finally:
+            probe.close()
+
+        result = build_bbox_text_stripped_pdf_copy(
+            source_pdf_path=source_pdf,
+            output_pdf_path=output_pdf,
+            translated_pages={
+                0: [
+                    {
+                        "block_kind": "text",
+                        "bbox": [0.0, 0.0, 612.0, 792.0],
+                        "protected_translated_text": "译文",
+                    }
+                ]
+            },
+        )
+
+        assert result.changed is True
+        stripped = fitz.open(output_pdf)
+        try:
+            assert "Visible heading" not in stripped[0].get_text()
+            assert _blue_pixel_ratio(stripped[0]) < 0.05
+        finally:
+            stripped.close()
+
+
+def test_strip_page_links_removes_link_annotations() -> None:
+    from services.rendering.document.pdf_ops import strip_page_links
+
+    doc = fitz.open()
+    try:
+        page = doc.new_page()
+        page.insert_text((72, 72), "click here", fontsize=12)
+        annot_xref = doc.get_new_xref()
+        doc.update_object(
+            annot_xref,
+            "<< /Type /Annot /Subtype /Link /Rect [70 60 140 85] /Border [0 0 0] "
+            "/A << /S /URI /URI (https://example.com) >> >>",
+        )
+        doc.xref_set_key(page.xref, "Annots", f"[{annot_xref} 0 R]")
+        page = doc.reload_page(page)
+        assert len(list(page.links())) == 1
+        strip_page_links(page)
+        page = doc.reload_page(page)
+        assert len(list(page.links())) == 0
+    finally:
+        doc.close()

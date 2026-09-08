@@ -18,21 +18,29 @@ def _translated_lines(text: str) -> list[str]:
     return [line.strip() for line in str(text or "").splitlines() if line.strip()]
 
 
-def _translated_lines_by_source_geometry(item: dict, translated_text: str) -> list[str]:
+def _translated_line_map(item: dict, translated_text: str) -> dict[int, str]:
+    """Map source line storage indices to translated lines.
+
+    The translation prompt preserves the source line order, so translated line k
+    corresponds to source line k (storage order). Entries reference lines via
+    ``line_index`` in storage order; aligning by storage index stays correct even
+    when some source lines fail to parse as TOC entries. Returns an empty map
+    when the translated line count differs from the source line count (the model
+    merged or split lines), so callers can fall back to safer rendering instead
+    of misaligning entries.
+    """
     lines = _translated_lines(translated_text)
+    if not lines:
+        return {}
     source_lines = item.get("source_line_texts") or []
-    source_line_boxes = item.get("lines") or []
-    if not isinstance(source_lines, list) or not isinstance(source_line_boxes, list):
-        return lines
-    if len(lines) != len(source_lines):
-        return lines
-    ordered = order_toc_lines_by_geometry(
-        lines=source_line_boxes,
-        line_texts=[str(line) for line in source_lines],
-    )
-    if len(ordered) != len(lines):
-        return lines
-    return [lines[index] for index, _text, _line in ordered]
+    if isinstance(source_lines, list) and source_lines:
+        expected = len(source_lines)
+    else:
+        source_boxes = item.get("lines") or []
+        expected = len(source_boxes) if isinstance(source_boxes, list) else 0
+    if expected <= 0 or len(lines) != expected:
+        return {}
+    return {index: line for index, line in enumerate(lines)}
 
 
 def _strip_toc_page_label(text: str, page_label: str) -> str:
@@ -155,12 +163,27 @@ def _render_toc_entries_from_translated_lines(item: dict, translated_text: str) 
     semantic_role = str(item.get("semantic_role") or item.get("layout_role") or "").strip().lower()
     if structure_role != "table_of_contents" and semantic_role != "table_of_contents":
         return []
+    line_map = _translated_line_map(item, translated_text)
+    if not line_map:
+        return []
+    source_boxes = item.get("lines") or []
+    source_lines = item.get("source_line_texts") or []
+    ordered: list[tuple[int, str, dict]] = []
+    if isinstance(source_boxes, list) and source_boxes:
+        texts = [str(line) for line in source_lines] if isinstance(source_lines, list) else []
+        if len(texts) != len(source_boxes):
+            texts = [""] * len(source_boxes)
+        ordered = order_toc_lines_by_geometry(lines=source_boxes, line_texts=texts)
+    if ordered:
+        sequence = [(index, _coerce_bbox(line.get("bbox")) if isinstance(line, dict) else None) for index, _text, line in ordered]
+    else:
+        sequence = [(index, _line_bbox(item, index)) for index in sorted(line_map)]
     rendered: list[RenderTocEntry] = []
-    for index, line in enumerate(_translated_lines_by_source_geometry(item, translated_text)):
-        bbox = _line_bbox(item, index)
+    for line_index, bbox in sequence:
         if bbox is None:
             continue
-        title, page_label = _split_translated_toc_line(line)
+        translated_line = line_map.get(line_index, "")
+        title, page_label = _split_translated_toc_line(translated_line)
         if not title:
             continue
         rendered.append(RenderTocEntry(title=title, page_label=page_label, bbox=bbox, number="", level=1))
@@ -175,9 +198,9 @@ def render_toc_entries_for_item(item: dict, translated_text: str) -> list[Render
             entries = rebuilt_entries
     if not isinstance(entries, list) or not entries:
         return _render_toc_entries_from_translated_lines(item, translated_text)
-    lines = _translated_lines_by_source_geometry(item, translated_text)
+    line_map = _translated_line_map(item, translated_text)
     rendered: list[RenderTocEntry] = []
-    for index, entry in enumerate(entries):
+    for entry in entries:
         if not isinstance(entry, dict):
             continue
         line_bbox = _bbox_from_line(item, entry) or _bbox_from_entry(entry)
@@ -186,7 +209,11 @@ def render_toc_entries_for_item(item: dict, translated_text: str) -> list[Render
         source_title = str(entry.get("title") or "").strip()
         page_label = str(entry.get("page_label") or "").strip()
         number = str(entry.get("number") or "").strip()
-        translated_line = lines[index] if index < len(lines) else ""
+        try:
+            line_index = int(entry.get("line_index"))
+        except (TypeError, ValueError):
+            line_index = -1
+        translated_line = line_map.get(line_index, "")
         title = _strip_toc_number(_strip_toc_page_label(translated_line, page_label), number) or source_title
         try:
             level = int(entry.get("level") or 1)

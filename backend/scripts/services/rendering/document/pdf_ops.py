@@ -31,4 +31,8 @@ def save_fast_pdf(doc: fitz.Document, output_pdf_path: Path) -> None:
 
 
 def strip_page_links(page: fitz.Page) -> None:
-    return
+    for link in list(page.links()):
+        try:
+            page.delete_link(link)
+        except Exception:
+            continue

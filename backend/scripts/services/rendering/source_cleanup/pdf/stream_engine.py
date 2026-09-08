@@ -59,11 +59,34 @@ def strip_bbox_text_from_stream(
     state = ContentStreamState(ctm=initial_ctm)
     path_tracker = PathTracker.empty()
     pending_path_ops: list[tuple] = []
+    q_depth = 0
+    # Text rendered with Tr 4-7 contributes its glyphs to the clip path.
+    # Once such text is removed, subsequent painting inside the same q..Q
+    # scope loses that clip and would repaint unbounded (e.g. InDesign link
+    # highlight rects spanning the whole page). Track the q-depth where this
+    # happened and drop path construction/painting until the matching Q.
+    clip_text_removed_depth: int | None = None
 
     xobjects = xobject_dict(stream_obj)
 
     for operands, operator in instructions:
         op = str(operator)
+        if clip_text_removed_depth is not None and q_depth >= clip_text_removed_depth:
+            if op in PATH_CONSTRUCTION_OPERATORS:
+                continue
+            if op in PATH_PAINT_OPERATORS:
+                if pending_path_ops:
+                    pending_path_ops.clear()
+                    path_tracker.clear()
+                path_removed += 1
+                continue
+        if op == "q":
+            q_depth += 1
+        elif op == "Q":
+            if q_depth > 0:
+                q_depth -= 1
+            if clip_text_removed_depth is not None and q_depth < clip_text_removed_depth:
+                clip_text_removed_depth = None
         if state.apply_state_operator(op, operands):
             output.append((operands, operator))
             continue
@@ -99,6 +122,8 @@ def strip_bbox_text_from_stream(
             state.advance_text(operands, text_metrics=text_decision.text_metrics)
             if text_decision.remove:
                 removed += 1
+                if state.text_state is not None and state.text_state.render_mode >= 4:
+                    clip_text_removed_depth = q_depth
                 continue
 
         if op in PATH_CONSTRUCTION_OPERATORS:

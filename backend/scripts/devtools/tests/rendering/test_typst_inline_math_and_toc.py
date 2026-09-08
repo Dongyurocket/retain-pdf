@@ -573,3 +573,107 @@ def test_toc_entries_normalize_spaced_inline_math() -> None:
 
     assert '"4.2 $E_{xc}[n]$ 的精确表示"' in typst
     assert '"4.2 $ E_{xc}[n] $ 的精确表示"' not in typst
+
+
+def test_toc_entries_align_translations_by_source_line_index_after_unparsed_header() -> None:
+    """Entries must align via entry.line_index, not by enumerate position.
+
+    Regression: when the first source line (a header remnant like "gure Page")
+    fails TOC parsing, every following entry used to shift by one translated
+    line, producing doubled numbers and duplicated page labels.
+    """
+    blocks = build_render_blocks(
+        [
+            {
+                "item_id": "p010-b000",
+                "page_idx": 9,
+                "block_type": "text",
+                "block_kind": "text",
+                "layout_role": "toc",
+                "semantic_role": "table_of_contents",
+                "structure_role": "table_of_contents",
+                "normalized_sub_type": "table_of_contents",
+                "bbox": [50.0, 100.0, 520.0, 190.0],
+                "text_flow": "preserve_lines",
+                "source_text": (
+                    "gure Page\n"
+                    "3.3. Proposed eVTOL(Top View) ..... 53\n"
+                    "3.4. Velocity Vs Vertical Force ..... 54"
+                ),
+                "protected_translated_text": (
+                    "图页\n"
+                    "3.3. 提出的eVTOL（俯视图） ..... 53\n"
+                    "3.4. 速度与垂直力的关系 ..... 54"
+                ),
+                "source_line_texts": [
+                    "gure Page",
+                    "3.3. Proposed eVTOL(Top View) ..... 53",
+                    "3.4. Velocity Vs Vertical Force ..... 54",
+                ],
+                "lines": [
+                    {"bbox": [50.0, 100.0, 520.0, 112.0]},
+                    {"bbox": [50.0, 120.0, 520.0, 132.0]},
+                    {"bbox": [50.0, 140.0, 520.0, 152.0]},
+                ],
+                "toc_entries": [
+                    {
+                        "number": "3.3.",
+                        "title": "Proposed eVTOL(Top View)",
+                        "page_label": "53",
+                        "level": 2,
+                        "line_index": 1,
+                        "bbox": [50.0, 120.0, 520.0, 132.0],
+                    },
+                    {
+                        "number": "3.4.",
+                        "title": "Velocity Vs Vertical Force",
+                        "page_label": "54",
+                        "level": 2,
+                        "line_index": 2,
+                        "bbox": [50.0, 140.0, 520.0, 152.0],
+                    },
+                ],
+            }
+        ],
+        page_width=595.0,
+        page_height=842.0,
+    )
+
+    block = blocks[0]
+    typst = build_typst_block("rp9_item_p010_b000_0", block)
+
+    assert '"3.3. 提出的eVTOL（俯视图）"' in typst
+    assert '"3.4. 速度与垂直力的关系"' in typst
+    assert '_toc_0_page = "53"' in typst
+    assert '_toc_1_page = "54"' in typst
+    assert "图页" not in typst
+
+
+def test_toc_entries_fall_back_when_translated_line_count_mismatches() -> None:
+    """If the model merged/split lines, entries must keep source titles instead
+    of being paired with misaligned translated lines."""
+    from services.rendering.layout.payload.toc_structure import render_toc_entries_for_item
+
+    item = {
+        "item_id": "p010-b001",
+        "structure_role": "table_of_contents",
+        "semantic_role": "table_of_contents",
+        "source_line_texts": ["3.3. Alpha ..... 53", "3.4. Beta ..... 54"],
+        "lines": [
+            {"bbox": [50.0, 100.0, 520.0, 112.0]},
+            {"bbox": [50.0, 120.0, 520.0, 132.0]},
+        ],
+        "toc_entries": [
+            {"number": "3.3.", "title": "Alpha", "page_label": "53", "level": 2, "line_index": 0,
+             "bbox": [50.0, 100.0, 520.0, 112.0]},
+            {"number": "3.4.", "title": "Beta", "page_label": "54", "level": 2, "line_index": 1,
+             "bbox": [50.0, 120.0, 520.0, 132.0]},
+        ],
+    }
+
+    entries = render_toc_entries_for_item(item, "3.3. 甲、3.4. 乙合并行 ..... 53")
+    assert [entry.title for entry in entries] == ["Alpha", "Beta"]
+    assert [entry.page_label for entry in entries] == ["53", "54"]
+
+    aligned = render_toc_entries_for_item(item, "3.3. 甲 ..... 53\n3.4. 乙 ..... 54")
+    assert [entry.title for entry in aligned] == ["甲", "乙"]
