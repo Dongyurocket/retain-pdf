@@ -36,6 +36,7 @@ export function StatusCard({
         rootId={rootId || `${idPrefix}job-status-card`}
         className={className}
         fallbackItem={fallbackItem}
+        showResultActions={showResultActions}
       />
     );
   }

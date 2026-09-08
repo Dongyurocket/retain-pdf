@@ -184,6 +184,7 @@ def main() -> None:
                 stage="translate",
                 stage_spec_schema_version=stage_spec_schema_version,
             ),
+            force_full_reprocess=bool(spec.params.options.get("bypass_cache", False)),
         )
         elapsed = time.perf_counter() - started
         diagnostics_path = job_dirs.artifacts_dir / "translation_diagnostics.json"

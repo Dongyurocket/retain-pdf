@@ -169,6 +169,7 @@ def main() -> None:
                 stage="book",
                 stage_spec_schema_version=stage_spec_schema_version,
             ),
+            force_full_reprocess=bool(spec.translation.options.get("bypass_cache", False)),
         )
 
         summary_path = job_dirs.artifacts_dir / PIPELINE_SUMMARY_FILE_NAME

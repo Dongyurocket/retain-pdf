@@ -73,6 +73,7 @@ export function buildHomeServices({
       recentJobsStore: library.recentJobsStatePort.store,
       actions: {
         ...library.recentJobActions,
+        refresh: () => library.recentJobActions.refresh(),
         // 网格选任务 → 详情翻译 Tab（永不弹 #translation-workflow-dialog）
         selectJob: (jobId: string) => {
           library.libraryController.selectJobForDetail(jobId, {

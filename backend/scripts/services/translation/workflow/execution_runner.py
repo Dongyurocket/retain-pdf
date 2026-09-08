@@ -68,6 +68,7 @@ def run_translation_execution_plan(
         glossary=glossary_summary,
         summary={
             "math_mode": request.math_mode,
+            "force_full_reprocess": request.force_full_reprocess,
             **diagnostics_summary,
             "review_issue_count": review_summary.get("issue_count", 0),
             "review_has_errors": review_summary.get("has_errors", False),

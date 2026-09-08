@@ -42,6 +42,7 @@ def translate_book_pipeline(
     render_prewarm_mode: str = "auto",
     render_prewarm_pdf_compress_dpi: int = 0,
     render_prewarm_source_cleanup_strategy: str = "pikepdf_text_strip",
+    force_full_reprocess: bool = False,
 ) -> dict:
     return execute_translation_request(
         TranslationExecutionRequest(
@@ -71,5 +72,6 @@ def translate_book_pipeline(
             glossary_mode=glossary_mode,
             memory_mode=memory_mode,
             invocation=invocation,
+            force_full_reprocess=force_full_reprocess,
         )
     )

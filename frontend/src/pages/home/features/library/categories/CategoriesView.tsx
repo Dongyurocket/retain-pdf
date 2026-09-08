@@ -6,6 +6,7 @@
 // 数据形状和图书馆首页卡片完全一致,直接复用 BookCard,不用
 // 另外做一套"文件夹详情卡片"渲染,也不会有第二套删除确认气泡状态。
 
+import { RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useHomeServices } from "../../../home-services-context.js";
 import { useStoreSnapshot } from "../../../../../shared/react/use-store.js";
@@ -81,6 +82,7 @@ export function CategoriesView() {
   const [collections, setCollections] = useState([]);
   const [listLoading, setListLoading] = useState(true);
   const [listError, setListError] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
   // 文件夹卡片的封面堆叠预览:collection_id → 该文件夹前几本书(job 卡片形状)。
   const [previews, setPreviews] = useState({});
 
@@ -230,6 +232,17 @@ export function CategoriesView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [controller, openFolderId, folderRetryTick]);
 
+  async function handleRefresh() {
+    if (refreshing) return;
+    setRefreshing(true);
+    try {
+      await reload({ soft: true });
+      setFolderRetryTick((tick) => tick + 1);
+    } finally {
+      setRefreshing(false);
+    }
+  }
+
   if (openFolder) {
     return (
       <section id="categories-folder-view" className="library-view categories-view" aria-label={`合集:${openFolder.name}`}>
@@ -243,6 +256,14 @@ export function CategoriesView() {
             ← 返回合集
           </button>
           <h2>{openFolder.name}</h2>
+          <button
+            type="button"
+            className="categories-back-btn"
+            title="刷新合集"
+            aria-label="刷新合集"
+            onClick={handleRefresh}
+            disabled={refreshing}
+          ><RefreshCw size={15} className={refreshing ? "animate-spin" : ""} aria-hidden /></button>
         </div>
         {folderLoading ? (
           <div className="events-empty">正在加载…</div>
@@ -287,6 +308,14 @@ export function CategoriesView() {
   return (
     <section id="categories-view" className="library-view categories-view" aria-label="合集">
       <div className="categories-head">
+        <button
+          type="button"
+          className="app-button secondary"
+          title="刷新合集"
+          aria-label="刷新合集"
+          onClick={handleRefresh}
+          disabled={refreshing}
+        ><RefreshCw size={15} className={refreshing ? "animate-spin" : ""} aria-hidden /></button>
         <button
           id="categories-create-btn"
           type="button"

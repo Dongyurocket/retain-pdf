@@ -99,7 +99,8 @@ export function createLibraryDomain({ features, documentRef, statusArea }: Creat
   });
 
   // startPolling/openReader/closeRecentJobsDialog 可由 navigationPort 兜底；签名仍标必填。
-  const recentJobActions = createRecentJobActions({
+  const recentJobActions = {
+    ...createRecentJobActions({
     apiPrefix: API_PREFIX,
     deleteLibraryBook,
     activeJobRecoveryPort: { readActiveJobId },
@@ -108,7 +109,9 @@ export function createLibraryDomain({ features, documentRef, statusArea }: Creat
     renderRecentJobsEmpty: recentJobsViewPort.renderEmpty,
     renderRecentJobsError: recentJobsViewPort.renderError,
     statePort: recentJobsStatePort,
-  }) as RecentJobActions;
+  }),
+    refresh: () => libraryEventPort.requestRefresh({ force: true }),
+  } as RecentJobActions & { refresh: () => unknown };
 
   const libraryController = createLibraryController({
     documentRef,

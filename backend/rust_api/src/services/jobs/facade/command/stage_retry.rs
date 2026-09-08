@@ -43,7 +43,7 @@ impl<'a> JobsFacade<'a> {
         }
 
         let request_input = if request.create_new_job {
-            build_retry_request(&source_job, &request.stage)?
+            build_retry_request(&source_job, &request.stage, request.force_full_reprocess)?
         } else if matches!(request.stage, RetryStageKind::Render) {
             let mut job = prepare_in_place_render_job(source_job)?;
             apply_retry_overrides_to_resolved_spec(&mut job.request_payload, &request.overrides)?;
@@ -67,6 +67,13 @@ impl<'a> JobsFacade<'a> {
 
         let mut request_input = request_input;
         apply_retry_overrides(&mut request_input, &request.overrides)?;
+        if request.force_full_reprocess {
+            request_input.ocr.no_cache = true;
+            request_input.translation.options.insert(
+                "bypass_cache".to_string(),
+                serde_json::Value::Bool(true),
+            );
+        }
         let workflow = request_input.workflow.clone();
         let job = create_translation_job(&self.command.submit, &request_input)?;
         Ok(build_retry_stage_submission_view(

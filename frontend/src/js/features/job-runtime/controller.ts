@@ -307,7 +307,7 @@ export function mountJobRuntimeFeature({
     }
   }
 
-  async function retryStage(stage, options: { jobId?: string } = {}) {
+  async function retryStage(stage, options: { jobId?: string; forceFullReprocess?: boolean } = {}) {
     const normalizedStage = `${stage || ""}`.trim();
     // 优先事件带的 jobId → 当前轮询 → 上次 snapshot（详情卡上点重试时可能尚未 currentJobId）
     const jobId = `${
@@ -349,7 +349,10 @@ export function mountJobRuntimeFeature({
         cover_url: pickBook("cover_url"),
         thumbnail_url: pickBook("thumbnail_url"),
       };
-      const result = await retryJobStage(jobId, apiPrefix, normalizedStage, bookMeta);
+      const result = await retryJobStage(jobId, apiPrefix, normalizedStage, {
+        ...bookMeta,
+        force_full_reprocess: options.forceFullReprocess === true,
+      });
       const nextJobId = `${result?.job_id || jobId}`.trim();
       if (nextJobId) {
         // 进度字段用 result；书目元数据优先 bookMeta（避免 Mock 重试标题盖掉书名）

@@ -239,8 +239,8 @@ test("AppUpdateBanner：手动检查 loading → 成功(available/latest)三态�
   assert.equal(byId("app-update-dialog").querySelector("h2").textContent, "正在检查更新");
 
   check1.resolve({
-    tag_name: "v4.2.0",
-    name: "RetainPDF 4.2.0",
+    tag_name: "v9.9.9",
+    name: "RetainPDF 9.9.9",
     body: "## 新版本说明\n- 修复状态显示\n**重要**：请升级\n`fix-1`",
     html_url: "https://example.com/releases/4.2.0",
   });

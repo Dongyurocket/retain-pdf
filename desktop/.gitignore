@@ -1,3 +1,9 @@
 node_modules/
 app/
 win/
+
+# CI/本地构建时组装的捆绑运行时（见 release-desktop.yml），不入库
+src/runtime/shared/
+src/runtime/windows/
+src/runtime/linux/
+src/runtime/darwin/

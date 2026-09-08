@@ -6,6 +6,7 @@ use crate::models::request::JobSourceInput;
 pub(super) fn build_retry_request(
     source_job: &JobSnapshot,
     stage: &RetryStageKind,
+    force_full_reprocess: bool,
 ) -> Result<CreateJobInput, AppError> {
     let artifacts = source_job
         .artifacts
@@ -45,6 +46,13 @@ pub(super) fn build_retry_request(
         }
     }
     request.runtime.job_id.clear();
+    if force_full_reprocess {
+        request.ocr.no_cache = true;
+        request
+            .translation
+            .options
+            .insert("bypass_cache".to_string(), serde_json::Value::Bool(true));
+    }
     Ok(request)
 }
 

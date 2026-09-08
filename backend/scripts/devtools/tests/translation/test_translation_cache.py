@@ -123,6 +123,65 @@ def test_translation_cache_sanitizes_reasoning_leak_on_load(monkeypatch, tmp_pat
     assert healed["translated_text"] == "时间有序响应必须与推迟响应函数加以区分，"
 
 
+def test_translation_cache_bypass_skips_read_and_write(monkeypatch, tmp_path) -> None:
+    monkeypatch.setattr(cache.paths, "TRANSLATION_UNIT_CACHE_DIR", tmp_path)
+    item = {
+        "item_id": "p200-b001",
+        "translation_unit_protected_source_text": "A cached source",
+    }
+    cache.store_cached_translation(
+        item,
+        {"decision": "translate", "translated_text": "旧译文"},
+        model="deepseek-v4-flash",
+        base_url="https://api.deepseek.com/v1",
+    )
+
+    assert cache.load_cached_translation(
+        item,
+        model="deepseek-v4-flash",
+        base_url="https://api.deepseek.com/v1",
+        bypass_cache=True,
+    ) == {}
+
+    cache.store_cached_translation(
+        item,
+        {"decision": "translate", "translated_text": "强制重跑新译文"},
+        model="deepseek-v4-flash",
+        base_url="https://api.deepseek.com/v1",
+        bypass_cache=True,
+    )
+    result = cache.load_cached_translation(
+        item,
+        model="deepseek-v4-flash",
+        base_url="https://api.deepseek.com/v1",
+    )
+    assert result["translated_text"] == "旧译文"
+
+
+def test_translation_batch_cache_bypass_skips_all_items(monkeypatch, tmp_path) -> None:
+    monkeypatch.setattr(cache.paths, "TRANSLATION_UNIT_CACHE_DIR", tmp_path)
+    batch = [
+        {"item_id": "p201-b001", "translation_unit_protected_source_text": "one"},
+        {"item_id": "p201-b002", "translation_unit_protected_source_text": "two"},
+    ]
+    cached, missing = cache.split_cached_batch(
+        batch,
+        model="deepseek-v4-flash",
+        base_url="https://api.deepseek.com/v1",
+        bypass_cache=True,
+    )
+    assert cached == {}
+    assert missing == batch
+    cache.store_cached_batch(
+        batch,
+        {item["item_id"]: {"decision": "translate", "translated_text": "译文"} for item in batch},
+        model="deepseek-v4-flash",
+        base_url="https://api.deepseek.com/v1",
+        bypass_cache=True,
+    )
+    assert list(tmp_path.rglob("*.json")) == []
+
+
 def test_unit_cache_prunes_expired_entries_once(tmp_path, monkeypatch) -> None:
     import os
     import time as time_module

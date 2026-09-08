@@ -58,6 +58,7 @@ def run_book_pipeline(
     pdf_compress_dpi: int = runtime.DEFAULT_PDF_COMPRESS_DPI,
     source_cleanup_strategy: str = "pikepdf_text_strip",
     invocation: dict | None = None,
+    force_full_reprocess: bool = False,
     render_visual_prewarm_handle: RenderPrewarmHandle | None = None,
 ) -> dict:
     total_started = time.perf_counter()
@@ -88,6 +89,7 @@ def run_book_pipeline(
         glossary_mode=glossary_mode,
         memory_mode=memory_mode,
         invocation=invocation,
+        force_full_reprocess=force_full_reprocess,
     )
     translate_elapsed = time.perf_counter() - total_started
     diagnostics_path = output_dir.parent / ARTIFACTS_DIR_NAME / "translation_diagnostics.json"

@@ -52,7 +52,11 @@ export function createLifecycle({
       const detail = (event as CustomEvent)?.detail || {};
       const stage = `${detail?.stage || ""}`.trim();
       const jobId = `${detail?.jobId || detail?.job_id || ""}`.trim();
-      if (stage) features.jobRuntimeFeature.retryStage(stage, jobId ? { jobId } : {});
+      const forceFullReprocess = Boolean(detail?.forceFullReprocess || detail?.force_full_reprocess);
+      if (stage) features.jobRuntimeFeature.retryStage(stage, {
+        ...(jobId ? { jobId } : {}),
+        forceFullReprocess,
+      });
     };
     const onReturnHome = () => features.jobRuntimeFeature.returnToHome();
     documentRef.addEventListener(APP_EVENTS.retryStage, onRetryStage);

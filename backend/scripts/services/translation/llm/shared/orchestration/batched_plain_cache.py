@@ -46,6 +46,7 @@ def split_and_validate_cached_batch(
         mode=context.mode,
         target_lang=context.target_lang,
         target_language_name=context.target_language_name,
+        bypass_cache=context.force_full_reprocess,
     )
     if request_label and cached_result:
         print(f"{request_label}: plain-text cache hit {len(cached_result)}/{len(batch)}", flush=True)
@@ -89,4 +90,5 @@ def store_cacheable_batch_result(
             mode=context.mode,
             target_lang=context.target_lang,
             target_language_name=context.target_language_name,
+            bypass_cache=context.force_full_reprocess,
         )

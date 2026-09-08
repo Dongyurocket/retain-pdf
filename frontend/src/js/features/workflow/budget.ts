@@ -33,6 +33,7 @@ export function resolveTranslationBudgetState({
   uploadedPageCount = 0,
   balanceCny = null,
   balanceChecked = false,
+  balanceUnsupported = false,
   needsTranslation = true,
 }: any = {}) {
   const pageCount = pageRangeCount(pageRanges, uploadedPageCount);
@@ -44,6 +45,7 @@ export function resolveTranslationBudgetState({
       estimatedCost: 0,
       balanceCny,
       balanceChecked,
+      balanceUnsupported,
       message: "",
       tone: "",
     };
@@ -52,7 +54,11 @@ export function resolveTranslationBudgetState({
   const balance = Number(balanceCny);
   const hasBalance = balanceChecked && Number.isFinite(balance);
   const blocking = hasBalance && balance < estimatedCost;
-  const balanceLabel = hasBalance ? `余额 ¥${money(balance)}` : "余额未检测";
+  const balanceLabel = hasBalance
+    ? `余额 ¥${money(balance)}`
+    : balanceUnsupported
+      ? "余额需自行确认"
+      : "余额未检测";
   return {
     visible: true,
     blocking,
@@ -60,6 +66,7 @@ export function resolveTranslationBudgetState({
     estimatedCost,
     balanceCny: hasBalance ? balance : null,
     balanceChecked,
+    balanceUnsupported,
     tone: blocking ? "error" : hasBalance ? "valid" : "",
     message: `预计 ¥${money(estimatedCost)} · ${pageCount} 页 · ${balanceLabel}`,
     topUpUrl: DEEPSEEK_TOP_UP_URL,

@@ -39,6 +39,18 @@ export function useBookDetailLiveItem(services: any, payloadItem: any = {}) {
         status: payloadStatus,
       };
     }
-    return live;
+    return {
+      ...live,
+      ...payloadItem,
+      document_id: payloadItem.document_id || live.document_id,
+      job_id: payloadItem.job_id || payloadItem.active_job_id || live.job_id,
+      active_job_id: payloadItem.active_job_id || payloadItem.job_id || live.active_job_id,
+      cover_url: payloadItem.cover_url || live.cover_url,
+      thumbnail_url: payloadItem.thumbnail_url || live.thumbnail_url,
+      source_pdf_url: payloadItem.source_pdf_url || live.source_pdf_url,
+      artifacts: payloadItem.artifacts || live.artifacts,
+      actions: payloadItem.actions || live.actions,
+      links: payloadItem.links || live.links,
+    };
   }, [payloadItem, recentJobs]);
 }

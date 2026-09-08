@@ -121,6 +121,7 @@ class TranslationControlContext:
     term_scope_abbreviation_total_count: int = 0
     translation_tail_queue: TranslationTailQueue | None = None
     transport_tail_retry_queue: TranslationTailQueue | None = None
+    force_full_reprocess: bool = False
     _term_scope_cache: dict[tuple[str, ...], tuple[list[GlossaryEntry], list[AbbreviationEntry]]] = field(
         default_factory=dict,
         compare=False,
@@ -308,6 +309,7 @@ def build_translation_control_context(
     abbreviation_entries: list[AbbreviationEntry] | None = None,
     retrieval_entries: list[RetrievalEvidence] | None = None,
     engine_profile: EngineProfile | None = None,
+    force_full_reprocess: bool = False,
 ) -> TranslationControlContext:
     resolved_profile = engine_profile or EngineProfile()
     tail_queue = TranslationTailQueue()
@@ -333,6 +335,7 @@ def build_translation_control_context(
         retrieval_entries=list(retrieval_entries or []),
         translation_tail_queue=tail_queue,
         transport_tail_retry_queue=tail_queue,
+        force_full_reprocess=bool(force_full_reprocess),
     )
 
 

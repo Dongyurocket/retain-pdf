@@ -24,6 +24,7 @@ export interface OcrValidationCache {
 export interface CredentialsRuntime {
   deepseekBalanceCny: number | null;
   deepseekBalanceChecked: boolean;
+  deepseekBalanceUnsupported?: boolean;
   ocrValidation: OcrValidationCache;
 }
 
@@ -35,6 +36,7 @@ export interface CredentialsState {
 export interface DeepSeekBalanceState {
   balanceCny: number | null;
   balanceChecked: boolean;
+  balanceUnsupported?: boolean;
 }
 
 export interface OcrTokenOptions {
@@ -78,7 +80,7 @@ export type CredentialsActions = {
   resetDeepSeekBalance(currentState: CredentialsState): CredentialsState;
   setDeepSeekBalance(
     currentState: CredentialsState,
-    payload?: { balanceCny?: unknown; checked?: boolean },
+    payload?: { balanceCny?: unknown; checked?: boolean; unsupported?: boolean },
   ): CredentialsState;
   resetOcrValidationCache(currentState: CredentialsState): CredentialsState;
   setOcrValidationCache(
@@ -101,7 +103,7 @@ export interface CredentialsStatePort {
   resetDeepSeekBalance(): DeepSeekBalanceState;
   resetOcrValidationCache(): OcrValidationCache;
   setCredentials(payload?: Partial<CredentialsFields>): CredentialsFields;
-  setDeepSeekBalance(balanceCny: unknown, checked?: boolean): DeepSeekBalanceState;
+  setDeepSeekBalance(balanceCny: unknown, checked?: boolean, unsupported?: boolean): DeepSeekBalanceState;
   setOcrValidationCache(payload?: OcrValidationCachePayload): OcrValidationCache;
   subscribe(listener: StoreListener<CredentialsState>): () => void;
   store: CredentialsStore;
@@ -133,11 +135,13 @@ function normalizeOcrValidation(payload: OcrValidationCachePayload = {}): OcrVal
 function normalizeRuntime(payload: Partial<CredentialsRuntime> & {
   deepseekBalanceCny?: unknown;
   deepseekBalanceChecked?: unknown;
+  deepseekBalanceUnsupported?: unknown;
   ocrValidation?: OcrValidationCachePayload;
 } = {}): CredentialsRuntime {
   return {
     deepseekBalanceCny: normalizeBalance(payload.deepseekBalanceCny),
     deepseekBalanceChecked: Boolean(payload.deepseekBalanceChecked),
+    ...(payload.deepseekBalanceUnsupported ? { deepseekBalanceUnsupported: true } : {}),
     ocrValidation: normalizeOcrValidation(payload.ocrValidation),
   };
 }
@@ -194,16 +198,18 @@ export function createCredentialsStore(
             ...currentState.runtime,
             deepseekBalanceCny: null,
             deepseekBalanceChecked: false,
+            deepseekBalanceUnsupported: false,
           },
         };
       },
-      setDeepSeekBalance(currentState, { balanceCny, checked = true } = {}) {
+      setDeepSeekBalance(currentState, { balanceCny, checked = true, unsupported = false } = {}) {
         return {
           ...currentState,
           runtime: {
             ...currentState.runtime,
             deepseekBalanceCny: normalizeBalance(balanceCny),
             deepseekBalanceChecked: Boolean(checked),
+            deepseekBalanceUnsupported: Boolean(unsupported),
           },
         };
       },
@@ -296,6 +302,7 @@ export function createCredentialsStatePort({
     return {
       balanceCny: runtime.deepseekBalanceCny,
       balanceChecked: Boolean(runtime.deepseekBalanceChecked),
+      ...(runtime.deepseekBalanceUnsupported ? { balanceUnsupported: true } : {}),
     };
   }
 
@@ -305,8 +312,8 @@ export function createCredentialsStatePort({
     return getDeepSeekBalanceState();
   }
 
-  function setDeepSeekBalance(balanceCny: unknown, checked = true): DeepSeekBalanceState {
-    const snapshot = actions.setDeepSeekBalance({ balanceCny, checked });
+  function setDeepSeekBalance(balanceCny: unknown, checked = true, unsupported = false): DeepSeekBalanceState {
+    const snapshot = actions.setDeepSeekBalance({ balanceCny, checked, unsupported });
     mirrorRuntime?.(snapshot.runtime);
     return getDeepSeekBalanceState();
   }

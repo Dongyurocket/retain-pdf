@@ -13,6 +13,7 @@ export interface BudgetStateSnapshot {
   visible?: boolean;
   blocking?: boolean;
   balanceChecked?: boolean;
+  balanceUnsupported?: boolean;
   message?: string;
 }
 
@@ -196,17 +197,18 @@ export async function ensureDeepSeekBudgetReady({
     return true;
   }
   setText("error-box", "正在检测 DeepSeek 余额…");
+  let balanceResult: DeepSeekBalanceCheckResult | null | undefined = null;
   try {
-    const result = asBalanceResult(await withTimeout(
+    balanceResult = asBalanceResult(await withTimeout(
       refreshDeepSeekBalance?.({ silent: true }) || Promise.resolve(null),
       timeoutMs,
       "DeepSeek 余额检测超时，请稍后重试或在接口设置中检测。",
     ));
-    if (result?.status === "missing_key") {
+    if (balanceResult?.status === "missing_key") {
       setText("error-box", "请先填写 DeepSeek API Key。");
       return false;
     }
-    if (result?.status === "network_error") {
+    if (balanceResult?.status === "network_error") {
       setText("error-box", "DeepSeek 余额检测失败，请稍后重试或在接口设置中检测。");
       return false;
     }
@@ -218,6 +220,10 @@ export async function ensureDeepSeekBudgetReady({
   if (budget?.blocking) {
     setText("error-box", `余额不足：${budget.message}。请充值后再提交。`);
     return false;
+  }
+  if (budget?.balanceUnsupported || balanceResult?.status === "unsupported_provider") {
+    setText("error-box", "当前接口不支持余额查询，请确认余额充足后提交。");
+    return true;
   }
   if (budget?.visible && !budget.balanceChecked) {
     setText("error-box", "无法确认 DeepSeek 余额，请先在接口设置中完成检测。");

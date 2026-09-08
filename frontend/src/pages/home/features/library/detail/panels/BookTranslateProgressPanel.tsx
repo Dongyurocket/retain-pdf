@@ -143,7 +143,7 @@ export function BookTranslateProgressPanel({
           rootId="book-detail-job-status-card"
           fallbackItem={liveFallback}
           showHiddenContract={false}
-          showResultActions={false}
+          showResultActions
         />
       </div>
     </div>

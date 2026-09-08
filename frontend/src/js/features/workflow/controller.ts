@@ -91,6 +91,7 @@ export interface MountWorkflowFeatureOptions {
   getDeepSeekBalanceState: () => {
     balanceCny?: number | null;
     balanceChecked?: boolean;
+    balanceUnsupported?: boolean;
   };
   getDeveloperConfig: () => WorkflowDeveloperConfig | Record<string, unknown> | null | undefined;
   getUploadState: () => {
@@ -283,6 +284,7 @@ export function mountWorkflowFeature({
       uploadedPageCount: uploadState.uploadedPageCount,
       balanceCny: balanceState.balanceCny,
       balanceChecked: balanceState.balanceChecked,
+      balanceUnsupported: balanceState.balanceUnsupported,
       needsTranslation: workflowNeedsUpload(workflow) && workflowUsesTranslation(workflow) && Boolean(uploadState.uploadId),
     });
   }

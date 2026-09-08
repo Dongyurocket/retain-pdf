@@ -181,7 +181,10 @@ def load_cached_translation(
     mode: str = "fast",
     target_lang: str = "zh-CN",
     target_language_name: str = "简体中文",
+    bypass_cache: bool = False,
 ) -> dict[str, str]:
+    if bypass_cache:
+        return {}
     cache_key = cache_key_for_item(
         item,
         model=model,
@@ -229,7 +232,10 @@ def store_cached_translation(
     mode: str = "fast",
     target_lang: str = "zh-CN",
     target_language_name: str = "简体中文",
+    bypass_cache: bool = False,
 ) -> None:
+    if bypass_cache:
+        return
     decision = str(translation_result.get("decision", "translate") or "translate").strip() or "translate"
     translated_text = str(translation_result.get("translated_text", "") or "").strip()
     translated_text = extract_single_item_translation_text(translated_text, str(item.get("item_id", "") or ""))
@@ -256,8 +262,6 @@ def store_cached_translation(
     temp_path = path.with_name(f"{path.name}.tmp-{os.getpid()}-{threading.get_ident()}")
     temp_path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
     temp_path.replace(path)
-
-
 def split_cached_batch(
     batch: list[dict],
     *,
@@ -267,6 +271,7 @@ def split_cached_batch(
     mode: str = "fast",
     target_lang: str = "zh-CN",
     target_language_name: str = "简体中文",
+    bypass_cache: bool = False,
 ) -> tuple[dict[str, dict[str, str]], list[dict]]:
     cached: dict[str, dict[str, str]] = {}
     missing: list[dict] = []
@@ -279,6 +284,7 @@ def split_cached_batch(
             mode=mode,
             target_lang=target_lang,
             target_language_name=target_language_name,
+            bypass_cache=bypass_cache,
         )
         if cached_result:
             cached[item["item_id"]] = cached_result
@@ -297,6 +303,7 @@ def store_cached_batch(
     mode: str = "fast",
     target_lang: str = "zh-CN",
     target_language_name: str = "简体中文",
+    bypass_cache: bool = False,
 ) -> None:
     for item in batch:
         item_id = item.get("item_id", "")
@@ -312,4 +319,5 @@ def store_cached_batch(
             mode=mode,
             target_lang=target_lang,
             target_language_name=target_language_name,
+            bypass_cache=bypass_cache,
         )

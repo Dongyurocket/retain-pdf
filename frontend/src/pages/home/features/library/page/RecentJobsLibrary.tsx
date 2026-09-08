@@ -12,6 +12,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { RefreshCw } from "lucide-react";
 import { useStoreSnapshot } from "../../../../../shared/react/use-store.js";
 import { useHomeServices } from "../../../home-services-context.js";
 import { BookCard, buildDefaultBookCardActions } from "../shell/BookCard.jsx";
@@ -72,7 +73,18 @@ export function RecentJobsLibrary({ onBatchModeChange }: any = {}) {
   const [batchMode, setBatchModeState] = useState(false);
   const [selectedIds, setSelectedIds] = useState(() => new Set<string>());
   const [batchBusy, setBatchBusy] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [collections, setCollections] = useState([]);
+
+  async function handleRefresh() {
+    if (refreshing) return;
+    setRefreshing(true);
+    try {
+      await actions.refresh?.();
+    } finally {
+      setRefreshing(false);
+    }
+  }
 
   function setBatchMode(next) {
     setBatchModeState(next);
@@ -236,6 +248,8 @@ export function RecentJobsLibrary({ onBatchModeChange }: any = {}) {
             setSortMode={setSortMode}
             batchMode={batchMode}
             onToggleBatchMode={setBatchMode}
+            onRefresh={handleRefresh}
+            refreshing={refreshing}
             filterSlot={(
               <LibraryFilterMenu
                 statusFilter={statusFilter}

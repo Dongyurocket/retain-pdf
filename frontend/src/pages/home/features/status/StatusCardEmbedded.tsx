@@ -37,7 +37,7 @@ function resolvePercent(
   return 0;
 }
 
-function dispatchRetryStage(stage: string, jobId = "") {
+function dispatchRetryStage(stage: string, jobId = "", forceFullReprocess = false) {
   if (globalThis.document?.dispatchEvent && typeof globalThis.CustomEvent === "function") {
     globalThis.document.dispatchEvent(
       new globalThis.CustomEvent(APP_EVENTS.retryStage, {
@@ -46,6 +46,7 @@ function dispatchRetryStage(stage: string, jobId = "") {
         detail: {
           stage,
           jobId: `${jobId || ""}`.trim() || undefined,
+          forceFullReprocess,
         },
       }),
     );
@@ -139,10 +140,12 @@ function resolveSelectedRetry(options: {
   const action = resolveStageAction(stageActions, meta.actionKeys);
 
   if (flowKey === "ocr") {
+    const enabled = Boolean(action?.canRetry) || failed || succeeded;
+    if (!enabled) return null;
     return {
       label: action?.label || meta.label,
       dispatchStage: meta.dispatchStage,
-      title: "从 OCR 重新执行",
+      title: action?.disabledReason || meta.label,
     };
   }
   const enabled = Boolean(action?.canRetry) || failed || succeeded;
@@ -160,6 +163,7 @@ type StatusCardEmbeddedProps = {
   rootId?: string;
   className?: string;
   fallbackItem?: StatusCardFallbackItem | null;
+  showResultActions?: boolean;
 };
 
 export function StatusCardEmbedded({
@@ -168,6 +172,7 @@ export function StatusCardEmbedded({
   rootId = "book-detail-job-status-card",
   className = "",
   fallbackItem = null,
+  showResultActions = true,
 }: StatusCardEmbeddedProps) {
   const model = useStatusCardModel({
     embedded: true,
@@ -226,6 +231,11 @@ export function StatusCardEmbedded({
     selectedFlow,
     stageActions,
   });
+  const forceRetry = selectedFlow === "ocr" && hasJob ? {
+    label: "彻底重跑",
+    dispatchStage: "ocr",
+    title: "从 OCR 重新执行，并完全绕过 OCR 与翻译缓存",
+  } : null;
 
   const rootClass = [
     "bd-job-status-card",
@@ -303,6 +313,18 @@ export function StatusCardEmbedded({
                 ) : (
                   <div id={ids.stageRetry} className="hidden" aria-hidden="true" />
                 )}
+                {forceRetry ? (
+                  <button
+                    type="button"
+                    className="bd-job-status-retry-action"
+                    data-retry-stage="ocr"
+                    data-force-full-reprocess="true"
+                    title={forceRetry.title}
+                    onClick={() => dispatchRetryStage(forceRetry.dispatchStage, jobId, true)}
+                  >
+                    {forceRetry.label}
+                  </button>
+                ) : null}
               </div>
               <div
                 id={ids.stageDetail}

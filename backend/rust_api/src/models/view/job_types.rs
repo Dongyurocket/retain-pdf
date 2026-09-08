@@ -295,6 +295,8 @@ pub struct RetryStageRequest {
     #[serde(default = "default_retry_stage_create_new_job")]
     pub create_new_job: bool,
     #[serde(default)]
+    pub force_full_reprocess: bool,
+    #[serde(default)]
     pub overrides: Value,
 }
 

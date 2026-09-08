@@ -2,6 +2,7 @@
 // 数量;右侧排序下拉 + 网格/列表切换(筛选按钮在后续阶段接)。
 
 import { cn } from "@/lib/utils";
+import { RefreshCw } from "lucide-react";
 
 const SORT_OPTIONS = [
   { value: "updated", label: "最近更新" },
@@ -36,7 +37,7 @@ function IconCheckSquare(props) {
 
 export function LibraryToolbar({
   count, viewMode, setViewMode, sortMode, setSortMode, filterSlot = null,
-  batchMode = false, onToggleBatchMode = null,
+  batchMode = false, onToggleBatchMode = null, onRefresh = null, refreshing = false,
 }) {
   return (
     <div className="mb-4 border-b border-border/10 pb-3">
@@ -59,6 +60,19 @@ export function LibraryToolbar({
                 batchMode ? "bg-secondary text-secondary-foreground" : "border border-border text-foreground hover:bg-muted/30",
               )}
             ><IconCheckSquare className="opacity-70" />批量</button>
+          ) : null}
+
+          {onRefresh ? (
+            <button
+              type="button"
+              title="刷新图书馆"
+              aria-label="刷新图书馆"
+              onClick={onRefresh}
+              disabled={refreshing}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-[var(--btn-radius)] border border-border text-foreground hover:bg-muted/30 disabled:cursor-wait disabled:opacity-50"
+            >
+              <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} aria-hidden />
+            </button>
           ) : null}
 
           {filterSlot}

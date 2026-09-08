@@ -101,7 +101,7 @@ export type JobRuntimeFeature = {
   cancelCurrentJob: () => unknown;
   currentJobId: () => string;
   fetchJob: (jobId?: string) => Promise<unknown> | unknown;
-  retryStage: (stage: string, options?: { jobId?: string }) => unknown;
+  retryStage: (stage: string, options?: { jobId?: string; forceFullReprocess?: boolean }) => unknown;
   returnToHome: () => void;
   startPolling: (jobId: string, options?: StartPollingOptions) => unknown;
   stopPolling: () => void;
@@ -238,6 +238,7 @@ export type RecentJobActions = {
 };
 
 export type LibraryActions = RecentJobActions & {
+  refresh: () => unknown;
   openSourceReader: LibraryController["openSourceReader"];
   translateDocument: LibraryController["translateDocument"];
   deleteDocument: LibraryController["deleteDocument"];
@@ -493,7 +494,7 @@ export type HomeServicesDomains = {
   library: {
     recentJobsViewPort: RecentJobsReactViewPort;
     recentJobsStatePort: RecentJobsStatePort;
-    recentJobActions: RecentJobActions;
+    recentJobActions: RecentJobActions & { refresh: () => unknown };
     libraryController: LibraryController;
     bookDetailStore: DialogStore<LibraryCardItem | null>;
     collectionsController: CollectionsController;

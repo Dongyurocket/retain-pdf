@@ -40,6 +40,7 @@ class TranslationExecutionRequest:
     glossary_mode: str = "matched"
     memory_mode: str = "matched"
     invocation: dict[str, Any] | None = None
+    force_full_reprocess: bool = False
 
 
 def execute_translation_request(request: TranslationExecutionRequest) -> dict:

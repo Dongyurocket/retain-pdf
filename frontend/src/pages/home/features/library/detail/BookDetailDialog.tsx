@@ -54,16 +54,6 @@ export function BookDetailDialog() {
   const jobId = `${item.job_id || item.active_job_id || cardJobId || ""}`.trim();
   const libraryOnly = isLibraryOnlyItem(item);
   const status = statusOf(item);
-  const coverUrl = useRecentJobCover(item);
-  const readerAvailable = `${item.status || ""}`.trim() === "succeeded"
-    && !["running", "queued", "pending"].includes(cardStatus);
-  const canTranslate = libraryOnly || `${item.status || ""}`.trim() === "failed";
-  const isActive = isRecentJobActive(item)
-    || ["running", "queued", "pending"].includes(cardStatus);
-  // 封面转圈：书架 live 行 + statusCard 正在跑（重试后 payload 可能仍是旧 succeeded）
-  const coverProcessing = isActive
-    || isLibraryCardProcessing(item)
-    || (Boolean(cardJobId) && ["running", "queued", "pending"].includes(cardStatus));
 
   // 点「翻译整本」/ 网格选中活跃任务：强制翻译 Tab，进度在 bd-job-status-inner
   const [preferTranslateTab, setPreferTranslateTab] = useState(false);
@@ -88,6 +78,27 @@ export function BookDetailDialog() {
     collectionsReload,
     onClose: close,
   });
+
+  // 文档详情接口包含完成态资源，作为延迟书架投影的回退来源。
+  const docResource = docState.doc || {};
+  const resourceItem = {
+    ...item,
+    ...docResource,
+    document_id: item.document_id || docResource.document_id || documentId,
+    job_id: item.job_id || item.active_job_id || docResource.active_job_id || cardJobId,
+    active_job_id: item.active_job_id || docResource.active_job_id || item.job_id,
+    status: item.status || docResource.status,
+  };
+  const coverUrl = useRecentJobCover(resourceItem);
+  const readerAvailable = `${resourceItem.status || ""}`.trim() === "succeeded"
+    && !["running", "queued", "pending"].includes(cardStatus);
+  const canTranslate = libraryOnly || `${item.status || ""}`.trim() === "failed";
+  const isActive = isRecentJobActive(item)
+    || ["running", "queued", "pending"].includes(cardStatus);
+  // 封面转圈：书架 live 行 + statusCard 正在跑（重试后 payload 可能仍是旧 succeeded）
+  const coverProcessing = isActive
+    || isLibraryCardProcessing(item)
+    || (Boolean(cardJobId) && ["running", "queued", "pending"].includes(cardStatus));
 
   const translateState = useBookDetailTranslate({
     open,

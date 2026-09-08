@@ -63,8 +63,10 @@ export async function handleBrowserDeepSeekValidate({
       queryDeepSeekBalance,
     });
     if (balance.status === "unsupported_provider") {
+      credentialsStatePort.setDeepSeekBalance?.(null, false, true);
+      onBalanceChange?.();
       if (!silent) {
-        viewPort.setValidationMessage("DeepSeek 可用", "valid");
+        viewPort.setValidationMessage("DeepSeek 可用，余额需自行确认", "valid");
       }
       return balance;
     }
