@@ -9,6 +9,20 @@ UPPER_START_RE = re.compile(r"^[A-Z]")
 HEADING_START_RE = re.compile(r"^(?:\(?\d+(?:\.\d+)*\)?[.)]?\s+|[A-Z][A-Z\s\-]{3,}|[•\-*]\s+)")
 # Multi-level section numbers like "2.2.1 Title" / "2.1 Lithium-halogen..." — not body continuations.
 SECTION_NUMBER_START_RE = re.compile(r"^\d+(?:\.\d+){1,}\s+[A-Z]")
+# Figure/table/scheme captions mis-tagged as body must never join continuations
+# (e.g. Nickel paper: "Scheme 18. Intermolecular ..." tagged text/body joined a
+# dangling paragraph tail). A label alone is not enough — a number must follow,
+# so "Table salt is ..." stays eligible while "Table 2. ..." does not.
+CAPTION_TITLE_START_RE = re.compile(
+    r"^(?:"
+    r"schemes?|figures?|fig\.?|tables?|algorithms?|equations?|charts?|panels?|plates?|boxes?"
+    r")\.?\s+"
+    r"(?:S\d+|\d+[A-Za-z]?|[IVXLCDM]+\b)",
+    re.IGNORECASE,
+)
+CJK_CAPTION_TITLE_START_RE = re.compile(
+    r"^(?:附?[图插表]|方案)\s*[SＳ\d\d０-９一二三四五六七八九十百千〇零]+\s*[.．、:：]?"
+)
 SOFT_BREAK_PUNCTUATION = (",",)
 CONTINUATION_START_WORDS = {
     "and",
@@ -152,6 +166,21 @@ def starts_like_section_number(text: str) -> bool:
     return bool(stripped) and bool(SECTION_NUMBER_START_RE.match(stripped))
 
 
+def starts_like_caption_title(text: str) -> bool:
+    """True when the block reads as a figure/table/scheme caption title.
+
+    Role-based guards (``item_is_bodylike``) only catch captions that are
+    tagged as captions. Provider OCR frequently tags captions as plain body
+    text, so cross-column/cross-page continuation must also refuse them by
+    their text shape. Only the *start* of the block is inspected: a body
+    paragraph that merely mentions "Scheme 18" mid-sentence is unaffected.
+    """
+    stripped = normalize_text(text)
+    if not stripped:
+        return False
+    return bool(CAPTION_TITLE_START_RE.match(stripped) or CJK_CAPTION_TITLE_START_RE.match(stripped))
+
+
 def starts_with_upper(text: str) -> bool:
     stripped = normalize_text(text)
     return bool(stripped) and bool(UPPER_START_RE.match(stripped))
@@ -191,11 +220,16 @@ def same_page(a: dict, b: dict) -> bool:
 
 
 def eligible(item: dict) -> bool:
-    return (
-        item_is_bodylike(item)
-        and has_balanced_inline_math_delimiters(item.get("protected_source_text", ""))
-        and bool(normalize_text(item.get("protected_source_text", "")))
-    )
+    if (
+        str(item.get("translation_group_strategy", "") or "").strip() == "aggregate_geometry"
+        or not item_is_bodylike(item)
+        or not has_balanced_inline_math_delimiters(item.get("protected_source_text", ""))
+        or not normalize_text(item.get("protected_source_text", ""))
+    ):
+        return False
+    # Cross-column/cross-page continuation joins body blocks only. Captions
+    # mis-tagged as body (e.g. "Scheme 18. ...") are refused by text shape.
+    return not starts_like_caption_title(item.get("protected_source_text", ""))
 
 
 def same_column(prev_bbox: list[float], next_bbox: list[float]) -> bool:

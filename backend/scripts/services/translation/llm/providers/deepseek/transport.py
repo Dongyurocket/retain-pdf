@@ -14,6 +14,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 from services.translation.artifacts import get_active_translation_run_diagnostics
+from services.translation.llm.shared import upstream_resilience as _resilience
 
 
 DEFAULT_BASE_URL = "https://api.deepseek.com/v1"
@@ -46,6 +47,9 @@ _TRANSPORT_RETRY_MARKERS = (
     "too many requests",
 )
 _TRANSPORT_STATUS_CODES = {408, 429, 500, 502, 503, 504}
+# 400/401/402/403 must fail fast: 402 is quota-exhausted (recharge hint),
+# 401/403 are auth errors, 400 is a bad request. None of them may burn retries.
+_NON_RETRYABLE_STATUS_CODES = frozenset(_resilience.NON_RETRYABLE_STATUS_CODES)
 _DNS_RETRY_MARKERS = (
     "temporary failure in name resolution",
     "name resolution",
@@ -211,13 +215,18 @@ def drop_session(session_key: str) -> None:
 def is_transport_error(exc: Exception) -> bool:
     if isinstance(exc, (ValueError, KeyError, json.JSONDecodeError)):
         return False
+    status = _resilience.http_status_of(exc)
+    if status is not None and status in _NON_RETRYABLE_STATUS_CODES:
+        return False
     if isinstance(exc, (requests.Timeout, requests.ConnectionError)):
         return True
     text = str(exc).lower()
     if any(marker in text for marker in _TRANSPORT_RETRY_MARKERS):
-        return True
-    if isinstance(exc, requests.HTTPError) and exc.response is not None:
-        return exc.response.status_code in _TRANSPORT_STATUS_CODES
+        return status is None or status not in _NON_RETRYABLE_STATUS_CODES
+    if isinstance(exc, requests.HTTPError):
+        # HTTPError without a transport status code (incl. 400/401/402/403)
+        # must not retry. Only 408/429/5xx are transient.
+        return exc.response is not None and exc.response.status_code in _TRANSPORT_STATUS_CODES
     return isinstance(exc, requests.RequestException)
 
 

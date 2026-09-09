@@ -126,7 +126,11 @@ def test_provider_cross_page_hint_without_boundary_roles_falls_back_to_rules() -
     assert payload[0]["continuation_group"] != "provider-paddle-global-abc"
 
 
-def test_rule_cross_page_pair_can_land_on_next_page_middle_when_text_continues() -> None:
+def test_rule_cross_page_pair_landing_on_next_page_middle_goes_to_review() -> None:
+    # Policy (fix/continuation-body-only): cross-page continuation joins body
+    # blocks tail -> head. Landing on a middle block no longer joins silently
+    # (that is how mis-tagged captions got fused into paragraphs); the pair is
+    # left to LLM review instead.
     state = _load_state_module()
     payload = [
         _payload_item(
@@ -151,9 +155,11 @@ def test_rule_cross_page_pair_can_land_on_next_page_middle_when_text_continues()
 
     state.annotate_continuation_context(payload)
 
-    assert payload[0]["continuation_decision"] == "joined"
-    assert payload[1]["continuation_decision"] == "joined"
-    assert payload[0]["continuation_group"] == payload[1]["continuation_group"]
+    assert payload[0]["continuation_decision"] == "candidate_break"
+    assert payload[1]["continuation_decision"] == "candidate_break"
+    assert payload[0]["continuation_candidate_next_id"] == "b"
+    assert payload[1]["continuation_candidate_prev_id"] == "a"
+    assert payload[0]["continuation_group"] == ""
 
 
 def test_provider_cross_page_hint_skipping_pages_is_not_consumed() -> None:

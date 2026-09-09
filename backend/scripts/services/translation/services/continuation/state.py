@@ -127,6 +127,26 @@ def _provider_cross_page_zone_is_usable(prev_item: dict, next_item: dict) -> boo
     return True
 
 
+def _cross_page_body_transition_is_usable(prev_item: dict, next_item: dict) -> bool:
+    """Cross-page continuation joins body blocks only: tail -> head.
+
+    The previous item must close its page (tail/single) and the next item
+    must open the following page (head/single) — but only when boundary roles
+    are actually annotated. Payloads without role annotation keep the
+    historical scoring behavior so a zones miss never silently kills a join;
+    it is downgraded to review instead (see ``annotate_continuation_context``).
+    """
+    if _item_int(prev_item, "page_idx", -1) == _item_int(next_item, "page_idx", -1):
+        return True
+    prev_role = _boundary_role(prev_item)
+    next_role = _boundary_role(next_item)
+    if prev_role and prev_role not in BOUNDARY_TAIL_ROLES:
+        return False
+    if next_role and next_role not in BOUNDARY_HEAD_ROLES:
+        return False
+    return True
+
+
 def _provider_cross_page_transition_is_usable(prev_item: dict, next_item: dict) -> bool:
     prev_page_idx = _item_int(prev_item, "page_idx", -1)
     next_page_idx = _item_int(next_item, "page_idx", -1)
@@ -234,6 +254,11 @@ def annotate_continuation_context(payload: list[dict]) -> int:
             continue
         nxt = payload[next_idx]
         decision = pair_decision(current, nxt)
+        if decision == "join" and not _cross_page_body_transition_is_usable(current, nxt):
+            # Score says join but the boundary roles disagree (e.g. a page tail
+            # paired with a non-head block such as a caption that slipped past
+            # tagging). Do not join silently — leave it to LLM review.
+            decision = "candidate"
         if decision != "join":
             if decision == "candidate":
                 current["continuation_decision"] = "candidate_break"
@@ -250,6 +275,8 @@ def annotate_continuation_context(payload: list[dict]) -> int:
         while j < len(payload) - 1:
             probe_idx = _next_candidate_index(payload, j + 1)
             if probe_idx is None or pair_decision(payload[j], payload[probe_idx]) != "join":
+                break
+            if not _cross_page_body_transition_is_usable(payload[j], payload[probe_idx]):
                 break
             chain.append(payload[probe_idx])
             j = probe_idx

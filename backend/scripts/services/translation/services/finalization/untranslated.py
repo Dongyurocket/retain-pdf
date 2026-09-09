@@ -10,6 +10,7 @@ from services.translation.core.payload.parts.diagnostics import record_translati
 from services.translation.core.payload.parts.policy_state import mark_keep_origin
 from services.translation.llm.shared.provider_runtime import request_chat_content
 from services.translation.llm.result_payload import result_entry
+from services.translation.llm.shared import upstream_resilience as _resilience
 from services.translation.llm.validation.quality import review_translation_item
 from services.translation.services.policy import should_skip_model_by_policy
 
@@ -259,7 +260,7 @@ def _mark_final_dead_letter(item: dict, exc: Exception | None) -> None:
             "final_status": "kept_origin",
             "dead_letter": True,
             "final_recovery_error_type": type(exc).__name__ if exc is not None else "UnknownError",
-            "final_recovery_error": str(exc or ""),
+            "final_recovery_error": _resilience.describe_upstream_error(exc) if exc is not None else "",
         },
     )
 

@@ -247,7 +247,9 @@ def pending_translation_items(payload: list[dict]) -> list[dict]:
         items = [item for item in items if item.get("should_translate", True)]
         if not items:
             continue
-        if any(has_group_translation(item) for item in items):
+        if any(has_group_translation(item) for item in items) or (
+            items and all(has_item_translation(item) for item in items)
+        ):
             continue
         unit = _build_group_translation_unit(unit_id, items)
         if unit is None:
