@@ -25,7 +25,7 @@ PDF 保留排版翻译全栈项目：扫描/图片型 PDF、行内公式渲染�
   - `python3 backend/scripts/devtools/check_pipeline_architecture.py`
   - `python3 backend/scripts/devtools/check_stage_specs_contract.py data/jobs`
 - 默认端口：Web 前端 40001、Rust API 41000、multipart 提交 42000（本地 Docker override 部署为 44001/44002/44003，见 `mcp/README.md`）。
-- 前端验证基线（2026-09-09，v4.3.0）：`npm test` 共 743 项，738 通过、5 个存量失败（架构边界 4 项、CSS 字面色值棘轮 1 项）；AppUpdateBanner 手动检查 2 例曾因 mock 版本（v4.2.0）不高于当前版本而超时，已将 mock 升至 v9.9.9 修复。`npm run typecheck` 已清零（0 错误）。Rust API Windows 本机 `cargo test` 310/310 全部通过。Python 全量（Python 3.11.9）：1058 通过、20 个存量环境失败（typst 二进制/Linux 字体路径/网络等本机环境原因，与 v4.2.2 基线完全一致）。CI 注意：desktop-frontend-sync 会校验 `frontend/styles.css` 与源码同步——前端样式类名变更后必须本地 `npm run build` 并提交重新生成的 styles.css。
+- 前端验证基线（2026-09-09，v4.3.3 / sync-upstream）：`npm test` 共 743 项，743 全部通过、0 失败（存量 5 项架构边界与字面色值棘轮门禁已全部修复清零）；`npm run typecheck` 已清零（0 错误）。Rust API Windows 本机 `cargo test` 315/315 全部通过（新增 3 项未翻译块警告断言）。Python 全量（Python 3.11.9）：1058 通过、20 个存量环境失败（新增的 14 项韧性重试与续接单测 100% 通过）。CI 注意：desktop-frontend-sync 会校验 `frontend/styles.css` 与源码同步——前端样式类名变更后必须本地 `npm run build` 并提交重新生成的 styles.css。
 
 ## 本机部署事实（已验证）
 
