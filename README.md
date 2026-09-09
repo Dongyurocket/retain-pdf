@@ -42,24 +42,36 @@ RetainPDF 从设计之初就致力于解决各类 PDF 的保留排版翻译问�
   - 支持基础地址（Base URL，自动补全 `/chat/completions`）与完整直连端点（Full URL）。
   - 提供细粒度的高级推理参数微调：采样温度（Temperature）、核采样（Top P）、请求超时时间、失败重试次数、思考/推理强度（Thinking/Reasoning Auto/Disabled/Low/Medium/High）、并发线程数。
   - 支持多行**自定义系统级翻译规则**，可将特定领域的行文规范、翻译限制与风格约定直接注入 Prompt，所有参数支持一键恢复默认。
+  - 自定义端点不支持余额查询时提示「余额需自行确认」并放行，不再阻塞任务提交；官方 DeepSeek 接口行为不变。
 
 - **🔍 双 OCR 引擎自由切换（PaddleOCR / MinerU）**
   - 支持 **PaddleOCR** 与 **MinerU** 双引擎，双引擎 Token 独立保存与校验，互不冲突。
   - MinerU 引擎开放模型版本选择、文档语言设置，以及公式和表格识别开关，显著提升复杂扫描版学术论文与技术文献的解析质量。
   - 桌面端与 Web 端共享该配置体系。
 
+- **🔄 彻底重跑与缓存治理**
+  - 状态卡重试菜单新增「彻底重跑」：从 OCR 阶段重新执行，并完全绕过 OCR 与翻译缓存（bypass 期间缓存不读、不写，不污染既有缓存内容），用于排查缓存或上游 OCR 异常导致的坏结果。
+  - 针对 PaddleOCR 服务端按上传内容指纹复用解析结果的行为，彻底重跑时自动提交追加惰性尾注释的上传副本，迫使服务端真实重新解析；本地源文件与既有缓存不受影响。
+
 - **📚 术语表（Glossary）批量导入与管理（设置 → 词表）**
   - 导入面板支持直接选择或拖拽本地 `.csv` 与 `.txt` 文件导入。
   - 支持制表符分隔（Tab-separated，可直接从 Excel 复制粘贴），自动剥离 UTF-8 BOM。
   - 内置 CSV 与 TXT 标准样例模板，支持一键下载填充。
 
+- **🎨 排版保真深度修复**
+  - 修复含超链接页面（InDesign 等导出的 PDF）翻译后整页变蓝/变红：源文字剥离引擎跟踪 Tr 4–7 文字裁剪作用域，同步丢弃失去裁剪的高亮路径绘制。
+  - 修复目录译文错位、双编号/双页码：译文按源行号（`line_index`）对齐，行数不一致时回退保留原标题；剥离引擎新增同行连续移除规则，目录行尾页码不再残留叠印。
+  - 输出 PDF 真正删除原文链接注释，避免译文页链接跳转到原文错误位置。
+
 - **📖 图书馆与文档管理体验优化**
   - **真实分页机制**：每页固定 24 项，支持直接输入页码跳转、上一页/下一页无缝翻页与空页保护。
   - **删除状态防竞态**：优化 Windows 文件句柄占用与异步轮询竞态逻辑，避免已删除条目因刷新重新出现。
   - **产物实时打包同步**：任务成功后短轮询产物就绪状态，Markdown ZIP 打包就绪后立即点亮下载，无需重启客户端。
+  - 首页与合集页新增手动刷新按钮；书籍详情翻译完成后直接展示结果操作（打开对照阅读等）。
 
 - **🛡️ 桌面端与跨平台优化**
   - 修复 Windows 上传路径反斜杠安全检查，统一跨平台行为。
+  - **端口占用自愈**：启动时先确认无进行中任务，再自动清理残留的 rust_api 进程；NSIS 安装器在安装前主动结束残留进程，升级安装后不再报「端口 41000 已被占用」。
   - 客户端“检查更新”直通本 Fork Releases，方便及时获取最新发布包。
 
 ---
@@ -106,11 +118,11 @@ RetainPDF 从设计之初就致力于解决各类 PDF 的保留排版翻译问�
 
 ### 桌面端下载（推荐日常使用）
 
-前往 [GitHub Releases](https://github.com/Dongyurocket/retain-pdf/releases/latest) 下载对应平台的最新安装包（当前版本 **v4.2.1**）：
+前往 [GitHub Releases](https://github.com/Dongyurocket/retain-pdf/releases/latest) 下载对应平台的最新安装包（当前版本 **v4.3.3**）：
 
-- **Windows**：下载 `RetainPDF-Windows-4.2.1-Setup.exe`（NSIS 安装包）
-- **macOS**：下载 `RetainPDF-Mac-4.2.1.dmg`（适配 Apple Silicon 架构）
-- **Linux**：下载 `RetainPDF-Linux-4.2.1.deb`（适配 Debian / Ubuntu 系列）
+- **Windows**：下载 `RetainPDF-Windows-4.3.3-Setup.exe`（NSIS 安装包）
+- **macOS**：下载 `RetainPDF-Mac-4.3.3.dmg`（适配 Apple Silicon 架构）
+- **Linux**：下载 `RetainPDF-Linux-4.3.3.deb`（适配 Debian / Ubuntu 系列）
 
 #### Windows 桌面端界面
 
