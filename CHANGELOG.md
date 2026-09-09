@@ -5,6 +5,20 @@
 
 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [SemVer](https://semver.org/lang/zh-CN/)。
 
+## [v4.3.2] - 2026-09-09
+
+### 修复
+
+- 目录（Contents）译文中页码与标题文字重叠（双页码）：源文本剥离引擎按名义字宽模拟文本推进，目录行长点号 leader 使模拟光标越过剥离区域右缘，行尾页码被误判保留并回绘到行首，叠在译文标题上。剥离引擎新增同行连续移除规则，估算超前时同一基线的后续文本一并正确剥离，目录页码不再残留。
+
+### 安装包
+
+- Windows：`RetainPDF-Windows-4.3.2-Setup.exe`（NSIS 安装包）
+- macOS：`RetainPDF-Mac-4.3.2.dmg`（Apple Silicon）
+- Linux：`RetainPDF-Linux-4.3.2.deb`
+
+[v4.3.2]: https://github.com/Dongyurocket/retain-pdf/releases/tag/v4.3.2
+
 ## [v4.3.1] - 2026-09-09
 
 ### 修复
