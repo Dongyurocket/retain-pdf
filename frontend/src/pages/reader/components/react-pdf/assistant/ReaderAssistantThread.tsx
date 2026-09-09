@@ -42,7 +42,10 @@ import {
   revokeHydratedImageUrls,
   injectCitationMarkers,
   isAgenticCitation,
+  CREDENTIALS_CHANGED_EVENT,
+  hasModelApiKey,
   lockReaderAiNavigation,
+  MISSING_MODEL_API_KEY_MESSAGE,
   neutralizeMarkdownAnchors,
   peekFinalAnswerHtmlCache,
   renderCitationFooter,
@@ -51,11 +54,6 @@ import {
   shouldIgnoreReaderAiNavEvent,
   type AiCitationLike,
 } from "../../../external.js";
-import {
-  CREDENTIALS_CHANGED_EVENT,
-  hasModelApiKey,
-  MISSING_MODEL_API_KEY_MESSAGE,
-} from "../../../../../js/reader/ai/config.js";
 
 /** Notion 侧栏式建议：图标 + 短标题 */
 const SUGGESTIONS: Array<{

@@ -191,6 +191,7 @@ export {
   translateDocument,
   deleteDocument,
   patchDocument,
+  type DocumentRecord,
 } from "../../../js/api/documents.js";
 export {
   listCollections,
@@ -356,3 +357,34 @@ export {
 export { createStatusDetailTranslationDataPort } from "../../../js/features/status-detail/translation-data-port.js";
 export { createStatusDetailTranslationTabCoordinator } from "../../../js/features/status-detail/translation-tab-coordinator.js";
 export { createTranslationState } from "../../../js/features/status-detail/translation-state.js";
+
+// home-ask & ai
+export { buildFrontendPageUrl } from "../../../js/config/runtime.js";
+export { askLibraryAi, AiAskError } from "../../../js/api/ai.js";
+export {
+  appendConversationMessage,
+  createConversation,
+  deleteConversation,
+  getConversation,
+  listConversations,
+  patchConversation,
+  type ConversationRecord,
+} from "../../../js/api/conversations.js";
+export {
+  CREDENTIALS_CHANGED_EVENT,
+  hasModelApiKey,
+  MISSING_MODEL_API_KEY_MESSAGE,
+  resolveReaderAiConfig,
+} from "../../../js/reader/ai/config.js";
+export {
+  injectCitationMarkers,
+  isAgenticCitation,
+  neutralizeMarkdownAnchors,
+  renderCitationFooter,
+  type AiCitationLike,
+} from "../../../js/reader/ai/answer-enhance.js";
+export {
+  renderFinalAnswerHtml,
+  renderStreamingPreviewHtml,
+} from "../../../js/reader/ai/render-answer-html.js";
+export { sanitizeAssistantAnswer } from "../../../js/reader/ai/sanitize-answer.js";

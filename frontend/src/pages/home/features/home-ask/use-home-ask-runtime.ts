@@ -1,20 +1,19 @@
 // 主页图书馆级 AI 问答：全库 / @ 文档 + 会话列表（侧栏历史）
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { askLibraryAi, AiAskError } from "../../../../js/api/ai.js";
 import {
+  AiAskError,
+  askLibraryAi,
   deleteConversation,
   getConversation,
-  listConversations,
-  patchConversation,
-  type ConversationRecord,
-} from "../../../../js/api/conversations.js";
-import {
   hasModelApiKey,
+  listConversations,
   MISSING_MODEL_API_KEY_MESSAGE,
+  patchConversation,
   resolveReaderAiConfig,
-} from "../../../../js/reader/ai/config.js";
-import { sanitizeAssistantAnswer } from "../../../../js/reader/ai/sanitize-answer.js";
+  sanitizeAssistantAnswer,
+  type ConversationRecord,
+} from "../../composition/external.js";
 import { resolveCollectionDocuments } from "./document-picker.js";
 import type { HomeAskCitation, HomeAskDocScope, HomeAskMessage, HomeAskScope } from "./types.js";
 

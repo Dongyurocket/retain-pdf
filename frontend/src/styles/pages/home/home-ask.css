@@ -1045,19 +1045,6 @@
   font-size: 11px;
 }
 
-.app-shell:has(#home-ask-view) {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
-.app-shell:has(#home-ask-view) .home-paper-stage {
-  flex: 1 1 auto;
-  min-height: 0;
-  /* 无底部浮栏，只留一点内边距 */
-  padding-bottom: 12px;
-}
-
 @media (max-width: 840px) {
   .home-ask-view {
     grid-template-columns: 1fr;

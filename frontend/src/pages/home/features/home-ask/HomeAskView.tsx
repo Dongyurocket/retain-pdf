@@ -5,7 +5,7 @@ import { Sparkles } from "lucide-react";
 import {
   CREDENTIALS_CHANGED_EVENT,
   hasModelApiKey,
-} from "../../../../js/reader/ai/config.js";
+} from "../../composition/external.js";
 import { useStoreSnapshot } from "../../../../shared/react/use-store.js";
 import { useHomeServices } from "../../home-services-context.js";
 import { HomeAskComposer } from "./HomeAskComposer.js";

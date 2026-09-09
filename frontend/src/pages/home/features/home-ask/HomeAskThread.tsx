@@ -3,17 +3,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BookOpen, FlaskConical, ListTree, Loader2, Sparkles } from "lucide-react";
 import {
+  buildFrontendPageUrl,
   injectCitationMarkers,
   isAgenticCitation,
   neutralizeMarkdownAnchors,
   renderCitationFooter,
-  type AiCitationLike,
-} from "../../../../js/reader/ai/answer-enhance.js";
-import {
   renderFinalAnswerHtml,
   renderStreamingPreviewHtml,
-} from "../../../../js/reader/ai/render-answer-html.js";
-import { buildFrontendPageUrl } from "../../../../js/config/runtime.js";
+  type AiCitationLike,
+} from "../../composition/external.js";
 import { navigateToReader } from "../reader/navigate-to-reader.js";
 import type { HomeAskCitation, HomeAskMessage } from "./types.js";
 

@@ -187,14 +187,14 @@ function stripCompatibilityReExports(source) {
 }
 
 function isViewBoundaryModule(filePath) {
-  const fileName = filePath.split("/").pop() || "";
+  const fileName = filePath.split(/[/\\]/).pop() || "";
   return /(?:-view-port|view-port)\.(?:js|ts)$/.test(fileName)
     || /^(?:dialog-elements-port|deepseek-view-port|setup-mode-port|presenter-port|translation-view-port)\.(?:js|ts)$/.test(fileName);
 }
 
 test("source tree does not contain notebook checkpoint artifacts", () => {
   const offenders = allPathsUnder(join(PROJECT_ROOT, "src"))
-    .filter((filePath) => filePath.split("/").includes(".ipynb_checkpoints"))
+    .filter((filePath) => filePath.split(/[/\\]/).includes(".ipynb_checkpoints"))
     .map((filePath) => relativeToProject(filePath));
 
   assert.deepEqual(offenders, []);
@@ -248,7 +248,7 @@ test("feature modules import local view.js only through explicit view boundary p
 });
 
 function isLegacyStateBoundaryModule(filePath) {
-  const fileName = filePath.split("/").pop() || "";
+  const fileName = filePath.split(/[/\\]/).pop() || "";
   return /^(?:state|.*-state|.*-state-port|.*runtime-state-port)\.(?:js|ts)$/.test(fileName);
 }
 

@@ -50,7 +50,7 @@ function currentCounts() {
   const counts = {};
   for (const file of walkCss(STYLES_ROOT).sort()) {
     const n = countLiterals(file);
-    if (n > 0) counts[relative(PROJECT_ROOT, file)] = n;
+    if (n > 0) counts[relative(PROJECT_ROOT, file).replace(/\\/g, "/")] = n;
   }
   return counts;
 }

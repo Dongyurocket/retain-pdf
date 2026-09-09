@@ -1212,3 +1212,16 @@ body.is-soft-reader-open {
   border-radius: 0.3rem;
   background: color-mix(in srgb, var(--warn) 10%, var(--paper));
 }
+
+.app-shell:has(#home-ask-view) {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-shell:has(#home-ask-view) .home-paper-stage {
+  flex: 1 1 auto;
+  min-height: 0;
+  /* 无底部浮栏，只留一点内边距 */
+  padding-bottom: 12px;
+}
