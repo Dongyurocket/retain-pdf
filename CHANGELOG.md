@@ -5,6 +5,20 @@
 
 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [SemVer](https://semver.org/lang/zh-CN/)。
 
+## [v4.3.1] - 2026-09-09
+
+### 修复
+
+- 升级安装后打开报「端口 41000 已被占用」：旧版 rust_api 进程残留时，桌面端现在先确认无进行中任务，再自动清理残留进程并启动全新实例，无需重启电脑；NSIS 安装器同时会在安装前主动结束残留的 rust_api.exe，从源头避免该问题。
+
+### 安装包
+
+- Windows：`RetainPDF-Windows-4.3.1-Setup.exe`（NSIS 安装包）
+- macOS：`RetainPDF-Mac-4.3.1.dmg`（Apple Silicon）
+- Linux：`RetainPDF-Linux-4.3.1.deb`
+
+[v4.3.1]: https://github.com/Dongyurocket/retain-pdf/releases/tag/v4.3.1
+
 ## [v4.3.0] - 2026-09-09
 
 ### 新增
