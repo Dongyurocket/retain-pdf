@@ -5,6 +5,20 @@
 
 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [SemVer](https://semver.org/lang/zh-CN/)。
 
+## [v4.3.3] - 2026-09-09
+
+### 修复
+
+- 「彻底重跑」对 Paddle OCR 不生效：Paddle 服务端按上传文件的内容指纹复用解析结果（同一文件重复提交会在几秒内直接返回旧结果），且其异步接口没有缓存开关，客户端的 no_cache 标记此前仅对 MinerU 通路生效。现在彻底重跑时 Paddle 通路会提交追加了惰性尾注释的上传副本以改变内容指纹，迫使服务端真实重新解析（实测同一文件从 7 秒缓存命中变为 182 秒全新解析）；本地源文件与既有缓存内容不受影响。
+
+### 安装包
+
+- Windows：`RetainPDF-Windows-4.3.3-Setup.exe`（NSIS 安装包）
+- macOS：`RetainPDF-Mac-4.3.3.dmg`（Apple Silicon）
+- Linux：`RetainPDF-Linux-4.3.3.deb`
+
+[v4.3.3]: https://github.com/Dongyurocket/retain-pdf/releases/tag/v4.3.3
+
 ## [v4.3.2] - 2026-09-09
 
 ### 修复
