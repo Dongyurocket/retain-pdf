@@ -29,6 +29,27 @@ impl<'a> JobsFacade<'a> {
         let request = build_rerun_request(&source_job)?;
         let workflow = request.workflow.clone();
         let job = create_translation_job(&self.command.submit, &request)?;
+        // 重跑即链文档（同 retry）：新任务无 upload_id，走源任务反查文档。
+        match self.command.db.get_document_by_job_id(source_job_id) {
+            Ok(Some(doc)) => {
+                if let Err(error) = self
+                    .command
+                    .db
+                    .set_document_active_job(&doc.document_id, &job.job_id, None)
+                {
+                    tracing::warn!(
+                        "library: set active job for {} at rerun failed: {error}",
+                        doc.document_id
+                    );
+                }
+            }
+            Ok(None) => {}
+            Err(error) => {
+                tracing::warn!(
+                    "library: resolve document for rerun source {source_job_id} failed: {error}"
+                );
+            }
+        }
         Ok(self.build_submission_view(base_url, &job, JobStatusKind::Queued, workflow))
     }
 }
