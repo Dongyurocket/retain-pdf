@@ -86,6 +86,13 @@ pub async fn run_servers(config: AppConfig) -> Result<()> {
     serve_with_shutdown(Arc::new(config), pending()).await
 }
 
+pub async fn run_servers_with_shutdown(
+    config: AppConfig,
+    shutdown: impl std::future::Future<Output = ()> + Send + 'static,
+) -> Result<()> {
+    serve_with_shutdown(Arc::new(config), shutdown).await
+}
+
 pub fn spawn_servers(config: AppConfig) -> RunningServers {
     let base_url = format!("http://127.0.0.1:{}", config.port);
     let simple_base_url = format!("http://127.0.0.1:{}", config.simple_port);
