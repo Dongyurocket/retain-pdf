@@ -18,6 +18,7 @@ class TextShowRewriteDecision:
     user_point: tuple[float, float]
     text_rect: RectTuple
     remove: bool
+    matched_rect: RectTuple | None = None
 
 
 def decide_text_show_rewrite(
@@ -36,11 +37,12 @@ def decide_text_show_rewrite(
         text_state,
         text_length=text_metrics[0],
     )
-    remove = strip_index.matches_text_for_removal(
+    matched_rect = strip_index.matching_rect_for_removal(
         user_point[0],
         user_point[1],
         text_rect,
-    ) and not is_protected_text_op(
+    )
+    remove = matched_rect is not None and not is_protected_text_op(
         user_point=user_point,
         text_rect=text_rect,
         protected_index=protected_index,
@@ -50,4 +52,5 @@ def decide_text_show_rewrite(
         user_point=user_point,
         text_rect=text_rect,
         remove=remove,
+        matched_rect=matched_rect,
     )

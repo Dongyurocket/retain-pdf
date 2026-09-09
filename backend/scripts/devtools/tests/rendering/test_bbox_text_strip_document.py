@@ -1300,6 +1300,73 @@ def test_bbox_text_strip_drops_link_highlight_fill_after_tr7_text_removal() -> N
             stripped.close()
 
 
+def test_bbox_text_strip_removes_page_number_after_dot_leader() -> None:
+    """TOC dot-leader lines must not leave the trailing page number behind.
+
+    The advance estimate uses a nominal 0.5em glyph width, so a long
+    dot-leader TJ array overshoots the simulated text cursor past the strip
+    rect's right edge. Without same-line continuation removal the trailing
+    page-number op is misjudged as outside every strip rect and survives;
+    with its preceding ops deleted it repaints at the line start and overlaps
+    the translated overlay title.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        source_pdf = root / "source.pdf"
+        output_pdf = root / "stripped.pdf"
+        doc = fitz.open()
+        page = doc.new_page(width=612, height=792)
+        page.insert_text((72, 760), "seed", fontsize=10)
+        dots = b"".join(b"-34(.)" for _ in range(195))
+        leader = b"[-239" + dots + b"-33(.)]"
+        toc_lines = (
+            b"BT /helv 7.1731 Tf 43.5 700 Td "
+            b"[(1.)-1667(Introduction)]TJ\n"
+            b"0 0 0 rg\n"
+            + leader
+            + b" TJ\n0 0 0 rg\n[-383(357)]TJ ET\n"
+            b"BT /helv 7.1731 Tf 43.5 680 Td [(2.)-1667(Kept line outside rect)]TJ ET\n"
+        )
+        content_xrefs = page.get_contents()
+        assert content_xrefs
+        existing = b""
+        for xref in content_xrefs:
+            existing += doc.xref_stream(xref)
+        doc.update_stream(content_xrefs[0], existing + b"\n" + toc_lines)
+        doc.save(source_pdf)
+        doc.close()
+
+        probe = fitz.open(source_pdf)
+        try:
+            assert "357" in probe[0].get_text()
+        finally:
+            probe.close()
+
+        result = build_bbox_text_stripped_pdf_copy(
+            source_pdf_path=source_pdf,
+            output_pdf_path=output_pdf,
+            translated_pages={
+                0: [
+                    {
+                        "block_kind": "text",
+                        "bbox": [36.0, 84.0, 559.0, 96.0],
+                        "protected_translated_text": "1. 引言",
+                    }
+                ]
+            },
+        )
+
+        assert result.changed is True
+        stripped = fitz.open(output_pdf)
+        try:
+            text = stripped[0].get_text()
+            assert "357" not in text
+            assert "Introduction" not in text
+            assert "Kept line outside rect" in text
+        finally:
+            stripped.close()
+
+
 def test_strip_page_links_removes_link_annotations() -> None:
     from services.rendering.document.pdf_ops import strip_page_links
 

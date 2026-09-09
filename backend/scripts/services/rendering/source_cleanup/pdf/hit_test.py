@@ -75,22 +75,31 @@ class RectIndex:
         return False
 
     def matches_text_for_removal(self, x: float, y: float, rect: RectTuple) -> bool:
+        return self.matching_rect_for_removal(x, y, rect) is not None
+
+    def matching_rect_for_removal(self, x: float, y: float, rect: RectTuple) -> RectTuple | None:
+        """Return the strip rect that matches this text op, or None.
+
+        Same matching logic as ``matches_text_for_removal`` but exposes the
+        matched candidate so callers can reason about the text op relative to
+        the strip rect (e.g. estimate overshoot past the rect's right edge).
+        """
         if self.bounds is None:
-            return False
+            return None
         point_may_match = _point_in_rect(x, y, self.bounds)
         rect_may_match = _rect_intersects(rect, self.bounds)
         if not point_may_match and not rect_may_match:
-            return False
+            return None
         limit = bisect_right(self.y0_sorted, max(y, rect[3]))
         for index in range(limit):
             candidate = self.rects[index]
             if candidate[3] < min(y, rect[1]):
                 continue
             if point_may_match and _point_in_rect(x, y, candidate):
-                return True
+                return candidate
             if rect_may_match and _rect_substantially_overlaps_text(rect, candidate):
-                return True
-        return False
+                return candidate
+        return None
 
     def protects_text_rect(self, x: float, y: float, rect: RectTuple) -> bool:
         if self.bounds is None:
