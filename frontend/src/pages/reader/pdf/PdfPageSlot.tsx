@@ -8,7 +8,7 @@ import {
   type ReaderPaneId,
 } from "./reader-dom-contract.js";
 
-const DEFAULT_ASPECT = 1.414;
+export const DEFAULT_ASPECT = 1.414;
 const ROOT_MARGIN = "120% 0px";
 
 export type PdfPageSlotProps = {
@@ -20,6 +20,11 @@ export type PdfPageSlotProps = {
   /** 对照左右同页 max 高度 */
   syncedMinHeight?: number;
   onMetrics?: () => void;
+  /** windowed rendering: aspect cache from pane to keep placeholder height correct */
+  cachedAspect?: number;
+  onAspectChange?: (pageNumber: number, aspect: number) => void;
+  /** pane-level windowing sentinel registration (shared observer also handles windowing) */
+  sentinelRef?: (el: HTMLDivElement | null) => void;
 };
 
 function PdfPageSlotInner({
@@ -30,10 +35,28 @@ function PdfPageSlotInner({
   pane,
   syncedMinHeight = 0,
   onMetrics,
+  cachedAspect,
+  onAspectChange,
+  sentinelRef,
 }: PdfPageSlotProps) {
   const slotRef = useRef<HTMLDivElement | null>(null);
   const [active, setActive] = useState(false);
-  const [aspect, setAspect] = useState(DEFAULT_ASPECT);
+  const [aspect, setAspect] = useState(cachedAspect ?? DEFAULT_ASPECT);
+
+  // keep local aspect in sync with pane-level cache (e.g. after remount)
+  useEffect(() => {
+    if (cachedAspect != null && Math.abs(cachedAspect - aspect) >= 0.001) {
+      setAspect(cachedAspect);
+    }
+  }, [cachedAspect]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const sentinelRefRef = useRef(sentinelRef);
+  sentinelRefRef.current = sentinelRef;
+  // stable callback ref that merges internal slotRef + pane windowing sentinel registration
+  const mergedRefCallback = useRef<(el: HTMLDivElement | null) => void>((el: HTMLDivElement | null) => {
+    (slotRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
+    sentinelRefRef.current?.(el);
+  }).current;
 
   useEffect(() => {
     const el = slotRef.current;
@@ -58,9 +81,21 @@ function PdfPageSlotInner({
   const naturalHeight = Math.max(120, Math.floor(width * aspect));
   const boxHeight = Math.max(naturalHeight, Math.ceil(syncedMinHeight || 0));
 
+  // notify pane of aspect so placeholder heights stay correct when windowed out
+  const handleAspect = (next: number) => {
+    setAspect((prev) => {
+      if (Math.abs(prev - next) < 0.001) return prev;
+      // defer parent notification to avoid setState during render
+      const notify = () => onAspectChange?.(pageNumber, next);
+      if (typeof queueMicrotask !== "undefined") queueMicrotask(notify);
+      else setTimeout(notify, 0);
+      return next;
+    });
+  };
+
   return (
     <div
-      ref={slotRef}
+      ref={mergedRefCallback}
       data-reader-page={pageNumber}
       data-reader-pane={pane}
       data-natural-height={naturalHeight}
@@ -90,7 +125,7 @@ function PdfPageSlotInner({
               const viewport = page.getViewport({ scale: 1 });
               if (viewport.width > 0) {
                 const next = viewport.height / viewport.width;
-                setAspect((prev) => (Math.abs(prev - next) < 0.001 ? prev : next));
+                handleAspect(next);
               }
             } catch {
               // ignore

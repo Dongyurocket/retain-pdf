@@ -18,16 +18,16 @@ import {
 } from "./useProtectedPdfFile.js";
 import { setupReactPdf } from "./setup-react-pdf.js";
 import { pageWidthFromShell } from "./reader-zoom.js";
-import { PdfPageSlot } from "./PdfPageSlot.js";
+import { DEFAULT_ASPECT, PdfPageSlot } from "./PdfPageSlot.js";
 import type { PageRowHeights } from "./usePageRowSync.js";
-import type { ReaderPaneId } from "./reader-dom-contract.js";
+import { READER_PAGE_SLOT_CLASS, type ReaderPaneId } from "./reader-dom-contract.js";
+
+const OVERSCAN = 5;
 
 /**
  * 页宽按「shell 全宽 × zoom%」计算，与当前栏宽无关。
  * pageWidthOverride 在此语义下应传 shell 全宽（不是半宽）。
  */
-
-setupReactPdf();
 
 function readerDevicePixelRatio(): number {
   const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
@@ -74,6 +74,9 @@ const PdfDocumentPaneInner = forwardRef<HTMLElement, PdfDocumentPaneProps>(
     },
     ref,
   ) {
+    // 渲染期配置 worker，而不是模块顶层：workerSrc 取自宿主注入的 adapters，
+    // 模块求值时机由打包器的 chunk 顺序决定，不保证晚于 adapters 注入。
+    setupReactPdf();
     const { file, loading, error: fetchError } = useProtectedPdfFile(url, preloadedFile);
     const [numPages, setNumPages] = useState(0);
     const [docError, setDocError] = useState("");
@@ -122,6 +125,96 @@ const PdfDocumentPaneInner = forwardRef<HTMLElement, PdfDocumentPaneProps>(
       [paneWidth, userZoom],
     );
 
+    // --- virtualization: aspect cache keeps placeholder heights correct when windowed out ---
+    const [aspectCache, setAspectCache] = useState<Map<number, number>>(() => new Map());
+    const [visiblePages, setVisiblePages] = useState<Set<number>>(() => new Set());
+    const sentinelRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+    const windowingObserverRef = useRef<IntersectionObserver | null>(null);
+
+    const handleAspectChange = useCallback((pn: number, aspect: number) => {
+      setAspectCache((prev) => {
+        if (prev.get(pn) === aspect) return prev;
+        const next = new Map(prev);
+        next.set(pn, aspect);
+        return next;
+      });
+    }, []);
+
+    const registerSentinel = useCallback((pn: number, el: HTMLDivElement | null) => {
+      const map = sentinelRefs.current;
+      const prev = map.get(pn);
+      if (prev && windowingObserverRef.current) {
+        try {
+          windowingObserverRef.current.unobserve(prev);
+        } catch {
+          // ignore
+        }
+      }
+      if (el) {
+        map.set(pn, el);
+        if (windowingObserverRef.current) {
+          try {
+            windowingObserverRef.current.observe(el);
+          } catch {
+            // ignore
+          }
+        }
+      } else {
+        map.delete(pn);
+      }
+    }, []);
+
+    // shared windowing observer: tracks which page sentinels are intersecting viewport
+    // expands to +/- OVERSCAN to form windowed set.
+    useEffect(() => {
+      if (!scrollRoot || typeof IntersectionObserver === "undefined") return;
+      const obs = new IntersectionObserver(
+        (entries) => {
+          setVisiblePages((prev) => {
+            const next = new Set(prev);
+            let changed = false;
+            for (const ent of entries) {
+              const target = ent.target as HTMLElement;
+              const pn = Number(target.getAttribute("data-reader-page"));
+              if (!Number.isFinite(pn)) continue;
+              if (ent.isIntersecting) {
+                if (!next.has(pn)) {
+                  next.add(pn);
+                  changed = true;
+                }
+              } else {
+                if (next.has(pn)) {
+                  next.delete(pn);
+                  changed = true;
+                }
+              }
+            }
+            return changed ? next : prev;
+          });
+        },
+        { root: scrollRoot, rootMargin: "0px", threshold: 0 },
+      );
+      windowingObserverRef.current = obs;
+      for (const el of sentinelRefs.current.values()) {
+        try {
+          obs.observe(el);
+        } catch {
+          // ignore
+        }
+      }
+      return () => {
+        obs.disconnect();
+        if (windowingObserverRef.current === obs) windowingObserverRef.current = null;
+      };
+    }, [scrollRoot]);
+
+    // reset visiblePages / cache when document url changes
+    useEffect(() => {
+      setVisiblePages(new Set());
+      setAspectCache(new Map());
+      sentinelRefs.current.clear();
+    }, [url]);
+
     const handleLoadSuccess = useCallback(
       ({ numPages: pages }: { numPages: number }) => {
         setNumPages(pages);
@@ -147,6 +240,24 @@ const PdfDocumentPaneInner = forwardRef<HTMLElement, PdfDocumentPaneProps>(
       () => (numPages > 0 ? Array.from({ length: numPages }, (_, i) => i + 1) : []),
       [numPages],
     );
+
+    const windowedSet = useMemo(() => {
+      if (numPages === 0) return new Set<number>();
+      const canWindow = !!scrollRoot && typeof IntersectionObserver !== "undefined" && visible;
+      if (!canWindow) return new Set(pageNumbers);
+      if (visiblePages.size === 0) {
+        const end = Math.min(numPages, OVERSCAN * 2 + 1);
+        return new Set(Array.from({ length: end }, (_, i) => i + 1));
+      }
+      const s = new Set<number>();
+      for (const v of visiblePages) {
+        for (let d = -OVERSCAN; d <= OVERSCAN; d++) {
+          const n = v + d;
+          if (n >= 1 && n <= numPages) s.add(n);
+        }
+      }
+      return s;
+    }, [numPages, pageNumbers, scrollRoot, visible, visiblePages]);
 
     const showEmpty = !url || Boolean(fetchError) || Boolean(docError);
     const emptyText = !url
@@ -183,18 +294,52 @@ const PdfDocumentPaneInner = forwardRef<HTMLElement, PdfDocumentPaneProps>(
               onLoadError={handleLoadError}
               className="reader-react-pdf-document"
             >
-              {pageNumbers.map((pageNumber) => (
-                <PdfPageSlot
-                  key={`${pane}-${pageNumber}`}
-                  pane={pane}
-                  pageNumber={pageNumber}
-                  width={pageWidth}
-                  devicePixelRatio={dpr}
-                  scrollRoot={scrollRoot}
-                  syncedMinHeight={rowHeights?.get(pageNumber) || 0}
-                  onMetrics={onMetrics}
-                />
-              ))}
+              {pageNumbers.map((pageNumber) => {
+                const isWindowed = windowedSet.has(pageNumber);
+                if (isWindowed) {
+                  return (
+                    <PdfPageSlot
+                      key={`${pane}-${pageNumber}`}
+                      pane={pane}
+                      pageNumber={pageNumber}
+                      width={pageWidth}
+                      devicePixelRatio={dpr}
+                      scrollRoot={scrollRoot}
+                      syncedMinHeight={rowHeights?.get(pageNumber) || 0}
+                      onMetrics={onMetrics}
+                      cachedAspect={aspectCache.get(pageNumber)}
+                      onAspectChange={handleAspectChange}
+                      sentinelRef={(el) => registerSentinel(pageNumber, el)}
+                    />
+                  );
+                }
+                // off-screen: keep placeholder div with correct height to preserve scroll height,
+                // unmount Page canvas to free GPU memory (windowed rendering)
+                const aspect = aspectCache.get(pageNumber) ?? DEFAULT_ASPECT;
+                const naturalHeight = Math.max(120, Math.floor(pageWidth * aspect));
+                const boxHeight = Math.max(naturalHeight, Math.ceil(rowHeights?.get(pageNumber) || 0));
+                return (
+                  <div
+                    key={`${pane}-${pageNumber}`}
+                    ref={(el) => registerSentinel(pageNumber, el)}
+                    data-reader-page={pageNumber}
+                    data-reader-pane={pane}
+                    data-natural-height={naturalHeight}
+                    className={READER_PAGE_SLOT_CLASS}
+                    style={{
+                      width: pageWidth,
+                      height: boxHeight,
+                      minHeight: boxHeight,
+                    }}
+                  >
+                    <div
+                      className="reader-react-pdf-page-placeholder"
+                      style={{ width: pageWidth, height: naturalHeight }}
+                      aria-hidden
+                    />
+                  </div>
+                );
+              })}
             </Document>
           </div>
         ) : null}

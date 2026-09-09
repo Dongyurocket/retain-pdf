@@ -255,6 +255,13 @@ class RetrievalAgent:
         messages: list[dict[str, Any]] = [
             {"role": "system", "content": SYSTEM_PROMPT},
         ]
+        if not (scoped_document_id or scoped_job_id):
+            messages[0]["content"] += "\n\n" + (
+                "当前请求没有绑定文档。普通聊天、通用知识或连通性测试可以直接回答，"
+                "不要求文档检索或引用，也不要声称已读取某篇文档。"
+                "若用户确实询问文档内容，应使用检索工具取得证据，"
+                "或请用户明确选择文档；不得编造文档内容或引用。"
+            )
         # 多轮对话:注入既往轮次(只保留 role/content,工具轨迹不回放)
         for turn in history or []:
             role = str(turn.get("role") or "")
