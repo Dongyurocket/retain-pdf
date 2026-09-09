@@ -13,6 +13,7 @@ const { createBackendRuntime } = require("./src/main/backend-runtime");
 const { createDesktopConfigStore } = require("./src/main/desktop-config");
 const { createDesktopLogger } = require("./src/main/desktop-logging");
 const { createDesktopWindows } = require("./src/main/desktop-windows");
+const { stopStaleBackendOnPort } = require("./src/main/stale-backend-cleanup");
 
 const desktopLogger = createDesktopLogger(app);
 const {
@@ -40,7 +41,7 @@ const backendHttp = createBackendHttp({
   desktopApiKey: DESKTOP_API_KEY,
   logger: console,
 });
-const { canReuseExistingBackend } = backendHttp;
+const { canReuseExistingBackend, requestJson } = backendHttp;
 const desktopConfigStore = createDesktopConfigStore(app, { desktopApiKey: DESKTOP_API_KEY });
 const {
   buildDesktopConfigResponse,
@@ -130,6 +131,17 @@ async function createSplashWindow() {
   updateSplashProgress(6, "正在准备运行环境", "正在检查桌面组件与本地资源");
 }
 
+// 查询占用端口的后端是否仍有任务在执行；查不到时按 0 处理，允许清理残留进程。
+async function getBackendRunningJobCount(apiPort) {
+  try {
+    const payload = await requestJson(`http://127.0.0.1:${apiPort}/health`, {}, 2000);
+    const running = payload?.data?.running_jobs;
+    return typeof running === "number" ? running : 0;
+  } catch (_err) {
+    return 0;
+  }
+}
+
 async function startBundledBackend() {
   updateSplashProgress(18, "正在检查运行文件", "正在校验后端、Python 和脚本资源");
   const backendRoot = resolveBackendRoot();
@@ -204,15 +216,33 @@ async function startBundledBackend() {
   if (apiPortBusy) {
     const allowExternalBackend = process.env.RETAINPDF_DESKTOP_ALLOW_EXTERNAL_BACKEND === "1";
     if (app.isPackaged && !allowExternalBackend) {
-      throw new Error(
-        [
-          `端口 ${apiPort} 已被占用。`,
-          "正式桌面端不会复用已有后端，避免连接到旧版本或开发版后端导致渲染错误。",
-          "请关闭其他 RetainPDF、旧版桌面端、Docker/系统服务后再启动。",
-        ].join("\n"),
-      );
-    }
-    if (await canReuseExistingBackend(apiPort)) {
+      // 升级安装或异常退出后，旧版 rust_api 可能仍占用端口。
+      // 先尝试自动清理残留进程并启动全新实例，而不是要求用户重启电脑。
+      const runningJobs = await getBackendRunningJobCount(apiPort);
+      if (runningJobs > 0) {
+        throw new Error(
+          [
+            `端口 ${apiPort} 被另一个仍在执行任务的 RetainPDF 后端占用（${runningJobs} 个任务进行中）。`,
+            "请先关闭另一个 RetainPDF 实例或等待任务完成，再启动新版本。",
+          ].join("\n"),
+        );
+      }
+      updateSplashProgress(38, "检测到残留的旧版服务", "正在清理旧后端进程并重新启动");
+      const cleanup = await stopStaleBackendOnPort(apiPort, {
+        canConnectToPort,
+        logger: { log: logDesktop, warn: logDesktopError },
+      });
+      logDesktop(`[desktop] stale backend cleanup: cleaned=${cleanup.cleaned} reason=${cleanup.reason}`);
+      if (!cleanup.cleaned) {
+        throw new Error(
+          [
+            `端口 ${apiPort} 已被占用，且无法自动清理残留进程（${cleanup.reason}）。`,
+            "请关闭其他 RetainPDF、旧版桌面端后再启动；或在命令行执行 taskkill /F /IM rust_api.exe。",
+          ].join("\n"),
+        );
+      }
+      logDesktop("[desktop] stale backend cleaned; continuing with fresh backend startup");
+    } else if (await canReuseExistingBackend(apiPort)) {
       usingExternalBackend = true;
       logDesktop(`[desktop] reusing existing backend on port ${apiPort}`);
       updateSplashProgress(52, "检测到已有本地服务", "桌面端将直接复用当前后端");
@@ -247,10 +277,11 @@ async function startBundledBackend() {
       });
       updateSplashProgress(92, "本地服务已就绪", "正在加载主界面");
       return;
+    } else {
+      throw new Error(
+        `端口 ${apiPort} 已被其他进程占用，且不是可复用的 RetainPDF 后端。请先关闭占用进程后再启动桌面端。`,
+      );
     }
-    throw new Error(
-      `端口 ${apiPort} 已被其他进程占用，且不是可复用的 RetainPDF 后端。请先关闭占用进程后再启动桌面端。`,
-    );
   }
 
   const simplePortBusy = await canConnectToPort("127.0.0.1", simplePort);
