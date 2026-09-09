@@ -69,9 +69,21 @@ RetainPDF 从设计之初就致力于解决各类 PDF 的保留排版翻译问�
   - **产物实时打包同步**：任务成功后短轮询产物就绪状态，Markdown ZIP 打包就绪后立即点亮下载，无需重启客户端。
   - 首页与合集页新增手动刷新按钮；书籍详情翻译完成后直接展示结果操作（打开对照阅读等）。
 
+- **⚡ 阅读器视口虚拟化与长文档性能提升**
+  - 阅读器引入基于 IntersectionObserver 的视口窗口化机制（保持当前可视区 ±5 页），离开视口的页面卸载 Canvas 上下文并保留精确高度占位，极大降低 GPU 与内存显存占用，彻底解决 100 页以上大型 PDF 缩放与快速滚动时的卡死崩溃。
+  - PDF Worker 初始化时序解耦，解决特定打包顺序下的偶发空白页。
+
+- **🚀 上游流水线韧性重试与排版容错**
+  - **402 欠费快速失败**：上游异常严格划分为 Transient（指数退避重试）与 Non-retryable；模型账户欠费（402）时立即快速失败并提示充值，不再无脑重试浪费时间。
+  - **跨栏跨页续接排除图注**：正则特征检测 Figure/Table/Scheme/方案等标题特征，排除出正文续接池，严格限定跨页续接为尾接头（tail-to-head），彻底杜绝学术论文中图注被误当正文合并的排版崩坏。
+  - **续接复核安全降级**：跨页审校大模型返回非标准 JSON 抛出异常时，安全降级为规则判定，避免辅助复核杀整单。
+  - **组完成判定修复**：已独立翻译的单块在复核合并为组后增加成员级判断，防止打回重新 pending。
+  - **未翻译块数警告**：成功任务若有段落因限流或超时保留原文，在状态详情与后台日志中如实标注警告，消除用户对渲染引擎排版丢字的误解。
+
 - **🛡️ 桌面端与跨平台优化**
   - 修复 Windows 上传路径反斜杠安全检查，统一跨平台行为。
-  - **端口占用自愈**：启动时先确认无进行中任务，再自动清理残留的 rust_api 进程；NSIS 安装器在安装前主动结束残留进程，升级安装后不再报「端口 41000 已被占用」。
+  - **退出整树同步清理**：退出时同步清理整棵子进程树，Rust 端接入控制台信号走 Axum 优雅关机，彻底断绝 Python workers 与 AI 孤儿进程残留。
+  - **端口占用自愈**：启动时使用原生 `netstat` + `tasklist` 毫秒级识别占用进程，覆盖 41000/42000/41002 全端口，支持中文环境容错与 `/health` 接口认尸回退；NSIS 安装器在安装前主动结束残留进程，升级安装后不再报端口占用。
   - 客户端“检查更新”直通本 Fork Releases，方便及时获取最新发布包。
 
 ---
@@ -118,11 +130,11 @@ RetainPDF 从设计之初就致力于解决各类 PDF 的保留排版翻译问�
 
 ### 桌面端下载（推荐日常使用）
 
-前往 [GitHub Releases](https://github.com/Dongyurocket/retain-pdf/releases/latest) 下载对应平台的最新安装包（当前版本 **v4.3.3**）：
+前往 [GitHub Releases](https://github.com/Dongyurocket/retain-pdf/releases/latest) 下载对应平台的最新安装包（当前版本 **v4.3.4**）：
 
-- **Windows**：下载 `RetainPDF-Windows-4.3.3-Setup.exe`（NSIS 安装包）
-- **macOS**：下载 `RetainPDF-Mac-4.3.3.dmg`（适配 Apple Silicon 架构）
-- **Linux**：下载 `RetainPDF-Linux-4.3.3.deb`（适配 Debian / Ubuntu 系列）
+- **Windows**：下载 `RetainPDF-Windows-4.3.4-Setup.exe`（NSIS 安装包）
+- **macOS**：下载 `RetainPDF-Mac-4.3.4.dmg`（适配 Apple Silicon 架构）
+- **Linux**：下载 `RetainPDF-Linux-4.3.4.deb`（适配 Debian / Ubuntu 系列）
 
 #### Windows 桌面端界面
 

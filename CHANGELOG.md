@@ -5,6 +5,32 @@
 
 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [SemVer](https://semver.org/lang/zh-CN/)。
 
+## [v4.3.4] - 2026-09-09
+
+### 新增与优化
+
+- **阅读器视口窗口虚拟化（长文档性能暴增）**：引入基于 IntersectionObserver 的视口窗口化机制（保持可视区 ±5 页）。非可视区页面以带精确高度（`cachedAspect`）的占位 div 替代，主动卸载 `Page` 的 Canvas 与渲染上下文释放显存。彻底解决 100 页以上大型 PDF 阅读、缩放与快速滚动时的显存爆满与浏览器卡死。
+- **桌面端进程治理与退出清理**：
+  - 桌面退出（`before-quit`）引入同步整树清理 `killProcessTreeSync`，彻底杜绝后台 Python workers/AI 进程遗留为孤儿进程继续霸占端口；
+  - Rust API 接管控制台中断信号走 Axum 优雅停机流程；
+  - 端口检测由 PowerShell 升级为原生 C 二进制（`netstat` + `tasklist`），识别速度提升数十倍，覆盖 41000/42000/41002 全端口，并增加中文环境容错与 `/health` 接口认尸回退。
+- **任务状态即时联动（主页卡片刷新不丢转圈）**：任务创建、阶段重试（Stage Retry）与彻底重跑（Rerun）时立即反查并写入文档的 `documents.active_job_id`，解决提交任务后刷新页面主页卡片丢失进行中状态的顽疾。
+- **流水线韧性与排版容错**：
+  - **402 欠费快速失败**：上游异常严格划分为 Transient（指数退避重试）与 Non-retryable；模型账户欠费（402）时立即快速失败并提示充值，与 Fork 现有的非官方中转接口免余额校验无缝协同；
+  - **跨栏跨页续接排除图注**：正则特征检测 Figure/Table/Scheme/方案等标题特征，排除出正文续接池，严格限定跨页续接为尾接头（tail-to-head），杜绝图注被误当正文合并的排版崩坏；
+  - **续接复核安全降级**：跨页审校大模型返回非标准 JSON 抛出异常时，安全降级为规则判定，避免辅助复核杀整单；
+  - **组完成判定修复**：已独立翻译的单块在复核合并为组后增加成员级判断，防止打回重新 pending；
+  - **未翻译块数警告**：成功任务若有段落因限流或超时保留原文，在状态详情与后台日志中如实标注警告，消除用户对渲染引擎排版丢字的误解。
+- **前端门禁 100% 全绿**：修复测试文件中的 Windows 路径反斜杠切分、CSS 选择器归位、AI 模块走 external 门面网关，并固化字面色值基线，前端自动化测试达到 743/743 全量通过。
+
+### 安装包
+
+- Windows：`RetainPDF-Windows-4.3.4-Setup.exe`（NSIS 安装包）
+- macOS：`RetainPDF-Mac-4.3.4.dmg`（Apple Silicon）
+- Linux：`RetainPDF-Linux-4.3.4.deb`
+
+[v4.3.4]: https://github.com/Dongyurocket/retain-pdf/releases/tag/v4.3.4
+
 ## [v4.3.3] - 2026-09-09
 
 ### 修复
