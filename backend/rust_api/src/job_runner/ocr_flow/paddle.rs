@@ -1,6 +1,6 @@
 use anyhow::Result;
 use serde_json::json;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use crate::models::domain::{now_iso, JobRuntimeState};
 use crate::ocr_provider::paddle::{
@@ -31,14 +31,19 @@ pub(super) async fn run_local_ocr_transport_paddle(
     log_paddle_unsupported_options(job);
     let model_name = normalize_model_name(&job.request_payload.ocr.paddle_model);
     job.request_payload.ocr.paddle_model = model_name.clone();
+    let (submit_path, cache_bust_guard) = prepare_paddle_submit_path(job, upload_path);
     let created = client
         .submit_local_file(
-            upload_path,
+            &submit_path,
             &model_name,
             &build_paddle_optional_payload(&model_name, deps.paddle_runtime().max_input_images),
         )
         .await
-        .map_err(|err| attach_paddle_runtime_error(job, err, "submit"))?;
+        .map_err(|err| attach_paddle_runtime_error(job, err, "submit"));
+    if let Some(temp_path) = cache_bust_guard {
+        let _ = std::fs::remove_file(&temp_path);
+    }
+    let created = created?;
     run_paddle_poll_loop(
         deps,
         job,
@@ -204,5 +209,95 @@ fn log_paddle_unsupported_options(job: &mut JobRuntimeState) {
     }
     if !job.request_payload.ocr.extra_formats.trim().is_empty() {
         job.append_log("paddle provider note: extra_formats is not supported and will be ignored");
+    }
+}
+
+/// Paddle 服务端按文件内容指纹复用解析结果（同一文件重复提交会在几秒内返回
+/// 相同结果），且其异步接口没有缓存开关。彻底重跑（no_cache）时给上传字节
+/// 追加惰性 PDF 尾注释，使服务端视为新文件重新解析；返回临时副本路径，
+/// 提交完成后由调用方删除。
+fn prepare_paddle_submit_path(job: &mut JobRuntimeState, upload_path: &Path) -> (PathBuf, Option<PathBuf>) {
+    if !job.request_payload.ocr.no_cache {
+        return (upload_path.to_path_buf(), None);
+    }
+    match build_cache_busted_upload_copy(upload_path) {
+        Ok(temp_path) => {
+            job.append_log(
+                "paddle provider note: no_cache enabled, submitting a cache-busted upload copy to bypass provider-side result reuse",
+            );
+            (temp_path.clone(), Some(temp_path))
+        }
+        Err(err) => {
+            job.append_log(&format!(
+                "paddle provider note: failed to build cache-busted upload copy ({err}); submitting the original file"
+            ));
+            (upload_path.to_path_buf(), None)
+        }
+    }
+}
+
+fn build_cache_busted_upload_copy(upload_path: &Path) -> Result<PathBuf> {
+    let mut bytes = std::fs::read(upload_path)?;
+    let unique = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|value| value.as_nanos())
+        .unwrap_or_default();
+    bytes.extend_from_slice(
+        format!("\n% retain-pdf no-cache bust {}-{}\n", std::process::id(), unique).as_bytes(),
+    );
+    let temp_path = std::env::temp_dir().join(format!(
+        "retainpdf-paddle-nocache-{}-{}.pdf",
+        std::process::id(),
+        unique
+    ));
+    std::fs::write(&temp_path, bytes)?;
+    Ok(temp_path)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::build_cache_busted_upload_copy;
+
+    #[test]
+    fn cache_busted_copy_appends_inert_comment_and_keeps_original() {
+        let dir = std::env::temp_dir().join(format!(
+            "retainpdf-paddle-nocache-test-{}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&dir).unwrap();
+        let source = dir.join("source.pdf");
+        let original = b"%PDF-1.7 fake-body\n%%EOF".to_vec();
+        std::fs::write(&source, &original).unwrap();
+
+        let copy = build_cache_busted_upload_copy(&source).unwrap();
+        let copied = std::fs::read(&copy).unwrap();
+        assert!(copied.starts_with(&original));
+        assert!(copied.len() > original.len());
+        assert!(String::from_utf8_lossy(&copied).contains("retain-pdf no-cache bust"));
+        assert_eq!(std::fs::read(&source).unwrap(), original);
+
+        std::fs::remove_file(&copy).unwrap();
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn cache_busted_copies_have_unique_bytes() {
+        let dir = std::env::temp_dir().join(format!(
+            "retainpdf-paddle-nocache-test-uniq-{}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&dir).unwrap();
+        let source = dir.join("source.pdf");
+        std::fs::write(&source, b"%PDF-1.7\n%%EOF").unwrap();
+
+        let first = build_cache_busted_upload_copy(&source).unwrap();
+        let second = build_cache_busted_upload_copy(&source).unwrap();
+        let first_bytes = std::fs::read(&first).unwrap();
+        let second_bytes = std::fs::read(&second).unwrap();
+        assert_ne!(first_bytes, second_bytes);
+
+        std::fs::remove_file(&first).unwrap();
+        std::fs::remove_file(&second).unwrap();
+        std::fs::remove_dir_all(&dir).unwrap();
     }
 }

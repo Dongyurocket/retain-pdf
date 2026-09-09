@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import inspect
+import tempfile
+import time
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Callable
@@ -41,6 +43,27 @@ def _pdf_page_count(path: Path) -> int | None:
         with fitz.open(path) as doc:
             return len(doc)
     except Exception:
+        return None
+
+
+def _build_cache_busted_upload_copy(source_pdf_path: Path) -> Path | None:
+    """Paddle 服务端按文件内容指纹复用解析结果，且接口没有缓存开关。
+
+    彻底重跑（no_cache）时给上传字节追加惰性 PDF 尾注释，使服务端视为
+    新文件重新解析；返回临时副本路径，提交完成后由调用方删除。
+    """
+    try:
+        payload = source_pdf_path.read_bytes()
+        unique = time.time_ns()
+        payload += f"\n% retain-pdf no-cache bust {unique}\n".encode("ascii")
+        with tempfile.NamedTemporaryFile(
+            prefix="retainpdf-paddle-nocache-",
+            suffix=".pdf",
+            delete=False,
+        ) as handle:
+            handle.write(payload)
+            return Path(handle.name)
+    except OSError:
         return None
 
 
@@ -127,22 +150,49 @@ def run_paddle_to_job_dir(
     optional_payload = build_optional_request_payload(args.paddle_model)
     if str(args.file_url or "").strip():
         source_pdf_path = download_source_pdf(str(args.file_url).strip(), source_dir)
-        task_id, trace_id = submit_remote(
-            token=paddle_token,
-            source_url=str(args.file_url).strip(),
-            model=model_name,
-            optional_payload=optional_payload,
-            base_url=base_url,
-        )
+        if getattr(args, "no_cache", False):
+            cache_bust_path = _build_cache_busted_upload_copy(source_pdf_path)
+            submit_path = cache_bust_path or source_pdf_path
+            print("paddle: no_cache enabled, submitting a cache-busted upload copy to bypass provider-side result reuse", flush=True)
+            try:
+                task_id, trace_id = submit_local(
+                    token=paddle_token,
+                    file_path=submit_path,
+                    model=model_name,
+                    optional_payload=optional_payload,
+                    base_url=base_url,
+                )
+            finally:
+                if cache_bust_path is not None:
+                    cache_bust_path.unlink(missing_ok=True)
+        else:
+            task_id, trace_id = submit_remote(
+                token=paddle_token,
+                source_url=str(args.file_url).strip(),
+                model=model_name,
+                optional_payload=optional_payload,
+                base_url=base_url,
+            )
     else:
         source_pdf_path = Path(args.file_path).resolve()
-        task_id, trace_id = submit_local(
-            token=paddle_token,
-            file_path=source_pdf_path,
-            model=model_name,
-            optional_payload=optional_payload,
-            base_url=base_url,
-        )
+        submit_path = source_pdf_path
+        cache_bust_path = None
+        if getattr(args, "no_cache", False):
+            cache_bust_path = _build_cache_busted_upload_copy(source_pdf_path)
+            if cache_bust_path is not None:
+                submit_path = cache_bust_path
+                print("paddle: no_cache enabled, submitting a cache-busted upload copy to bypass provider-side result reuse", flush=True)
+        try:
+            task_id, trace_id = submit_local(
+                token=paddle_token,
+                file_path=submit_path,
+                model=model_name,
+                optional_payload=optional_payload,
+                base_url=base_url,
+            )
+        finally:
+            if cache_bust_path is not None:
+                cache_bust_path.unlink(missing_ok=True)
     print(f"job dir: {job_dirs.root}", flush=True)
     print(f"task_id: {task_id}", flush=True)
     if trace_id:
