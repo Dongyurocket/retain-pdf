@@ -1,0 +1,101 @@
+source,target,note,level,match_mode,context
+orbital elements,轨道根数,六个开普勒轨道参数,canonical,case_insensitive,航天·轨道力学
+semimajor axis,半长轴,轨道椭圆半长轴,canonical,case_insensitive,航天·轨道力学
+eccentricity,偏心率,轨道椭圆偏心率,canonical,case_insensitive,航天·轨道力学
+inclination,轨道倾角,轨道面与赤道面夹角,canonical,case_insensitive,航天·轨道力学
+right ascension of ascending node,升交点赤经,轨道定向要素,canonical,case_insensitive,航天·轨道力学
+argument of perigee,近地点幅角,近地点角距,canonical,case_insensitive,航天·轨道力学
+true anomaly,真近点角,真近点角参数,canonical,case_insensitive,航天·轨道力学
+mean anomaly,平近点角,平近点角参数,canonical,case_insensitive,航天·轨道力学
+periapsis,近拱点,通用中心天体近点,canonical,case_insensitive,航天·轨道力学
+apoapsis,远拱点,通用中心天体远点,canonical,case_insensitive,航天·轨道力学
+perigee,近地点,地心轨道近地点,canonical,case_insensitive,航天·轨道力学
+apogee,远地点,地心轨道远地点,canonical,case_insensitive,航天·轨道力学
+orbital period,轨道周期,绕行一周所需时间,canonical,case_insensitive,航天·轨道力学
+orbital velocity,轨道速度,运行轨道切向速度,canonical,case_insensitive,航天·轨道力学
+escape velocity,逃逸速度,第二宇宙速度,canonical,case_insensitive,航天·轨道力学
+circular velocity,环绕速度,第一宇宙速度,canonical,case_insensitive,航天·轨道力学
+geostationary orbit,地球静止轨道,相对地面静止赤道圆轨道,canonical,case_insensitive,航天·轨道力学
+geosynchronous orbit,地球同步轨道,运行周期等于地球自转周期,canonical,case_insensitive,航天·轨道力学
+low Earth orbit,低地球轨道,近地轨道高度200至2000公里,canonical,case_insensitive,航天·轨道力学
+Sun-synchronous orbit,太阳同步轨道,进动角速度等于地球公转角速度,canonical,case_insensitive,航天·轨道力学
+transfer orbit,转移轨道,不同轨道间过渡轨道,canonical,case_insensitive,航天·轨道力学
+Hohmann transfer,霍曼转移,人名轨道机动方式,canonical,exact,航天·轨道力学
+Lagrange point,拉格朗日点,平动引力平衡点,canonical,exact,航天·轨道力学
+delta-v,速度增量,轨道机动所需速度脉冲,canonical,exact,航天·轨道力学
+launch vehicle,运载火箭,运送航天器入轨的火箭,canonical,case_insensitive,航天·运载火箭
+payload,有效载荷,航天任务直接任务设备,canonical,case_insensitive,航天·运载火箭
+payload fairing,有效载荷整流罩,发射上升段气动与热防护罩,canonical,case_insensitive,航天·运载火箭
+booster,助推器,第一级捆绑助推火箭,canonical,case_insensitive,航天·运载火箭
+rocket stage,火箭级,多级运载火箭各单级,canonical,case_insensitive,航天·运载火箭
+stage separation,级间分离,火箭单级燃尽分离过程,canonical,case_insensitive,航天·运载火箭
+interstage,级间段,多级火箭连接结构段,canonical,case_insensitive,航天·运载火箭
+specific impulse,比冲,推进剂消耗单位质量产生冲量,canonical,case_insensitive,航天·运载火箭
+thrust-to-weight ratio,推重比,发动机或运载器推力与自重比,canonical,case_insensitive,航天·运载火箭
+thrust vector control,推力矢量控制,通过偏转推力改变火箭姿态,canonical,case_insensitive,航天·运载火箭
+solid rocket motor,固体火箭发动机,以固体推进剂为能源的发动机,canonical,case_insensitive,航天·运载火箭
+liquid rocket engine,液体火箭发动机,以液体推进剂为能源的发动机,canonical,case_insensitive,航天·运载火箭
+propellant,推进剂,火箭推进燃料与氧化剂统称,canonical,case_insensitive,航天·运载火箭
+cryogenic propellant,低温推进剂,液氢液氧等低温储运推进剂,canonical,case_insensitive,航天·运载火箭
+ullage motor,沉底发动机,提供轴向过载使推进剂沉底,canonical,case_insensitive,航天·运载火箭
+spacecraft,航天器,在地球大气层外航行的飞行器,canonical,case_insensitive,航天·航天器总体
+satellite,人造地球卫星,人造卫星总体,canonical,case_insensitive,航天·航天器总体
+space station,空间站,长期在轨载人航天器,canonical,case_insensitive,航天·航天器总体
+space probe,空间探测器,深空天体探测飞行器,canonical,case_insensitive,航天·航天器总体
+orbiter,轨道器,环绕目标天体飞行的探测器,canonical,case_insensitive,航天·航天器总体
+lander,着陆器,降落于地外天体表面的航天器,canonical,case_insensitive,航天·航天器总体
+rover,巡视器,在行星或月球表面移动巡视装置,canonical,case_insensitive,航天·航天器总体
+reentry capsule,返回舱,重返大气层回收舱段,canonical,case_insensitive,航天·航天器总体
+service module,服务舱,提供推进电源生命保障等舱段,canonical,case_insensitive,航天·航天器总体
+command module,指令舱,载人飞船核心控制舱段,canonical,case_insensitive,航天·航天器总体
+spacecraft bus,航天器公用平台,卫星公共平台系统,canonical,case_insensitive,航天·航天器总体
+thermal protection system,热防护系统,防隔热保护材料与系统,canonical,case_insensitive,航天·航天器总体
+radiator,辐射散热器,航天器废热排放辐射板,canonical,case_insensitive,航天·航天器总体
+docking mechanism,对接机构,空间交会对接机械连接装置,canonical,case_insensitive,航天·航天器总体
+attitude control,姿态控制,保持或改变航天器指向,canonical,case_insensitive,航天·制导导航控制
+attitude determination,姿态确定,根据传感器测量解算航天器姿态,canonical,case_insensitive,航天·制导导航控制
+reaction wheel,反作用飞轮,利用角动量交换控制姿态的执行构件,canonical,case_insensitive,航天·制导导航控制
+control moment gyroscope,控制力矩陀螺,框架陀螺力矩输出姿态执行机构,canonical,case_insensitive,航天·制导导航控制
+momentum wheel,动量轮,提供偏置动量稳定的飞轮,canonical,case_insensitive,航天·制导导航控制
+thruster,推力器,微小机动与姿态调整小型发动机,canonical,case_insensitive,航天·制导导航控制
+cold gas thruster,冷气推力器,利用高压压缩气体喷射的微推力器,canonical,case_insensitive,航天·制导导航控制
+star tracker,星敏感器,利用恒星成像确定姿态的高精度敏感器,canonical,case_insensitive,航天·制导导航控制
+Sun sensor,太阳敏感器,测定太阳光方向的敏感器,canonical,case_insensitive,航天·制导导航控制
+Earth sensor,地球敏感器,测量地球红外地平方向的敏感器,canonical,case_insensitive,航天·制导导航控制
+magnetorquer,磁力矩器,利用地磁场产生卸载与控制力矩线圈,canonical,case_insensitive,航天·制导导航控制
+magnetometer,磁强计,测量空间矢量磁场的仪表,canonical,case_insensitive,航天·制导导航控制
+inertial measurement unit,惯性测量单元,陀螺加速度计集成组件,canonical,case_insensitive,航天·制导导航控制
+orbital maneuvering system,轨道机动系统,执行变轨和轨道修正推进系统,canonical,case_insensitive,航天·航天推进
+chemical propulsion,化学推进,以化学反应能为动力源推进,canonical,case_insensitive,航天·航天推进
+electric propulsion,电推进,以电能加速工质产生推力,canonical,case_insensitive,航天·航天推进
+Hall-effect thruster,霍尔效应推力器,利用电磁场加速等离子体推力器,canonical,exact,航天·航天推进
+ion thruster,离子推力器,静电场加速离子喷射电推力器,canonical,case_insensitive,航天·航天推进
+monopropellant,单组元推进剂,单一液体工质催化分解推进剂,canonical,case_insensitive,航天·航天推进
+bipropellant,双组元推进剂,燃料与氧化剂两组元液体推进剂,canonical,case_insensitive,航天·航天推进
+apogee kick motor,远地点发动机,在远地点提供圆化轨道推力发动机,canonical,case_insensitive,航天·航天推进
+solar array,太阳电池阵,航天器太阳能光伏发电电池阵列,canonical,case_insensitive,航天·电源系统
+spacecraft battery,航天器蓄电池,阴影区供电二次化学储能电池,canonical,case_insensitive,航天·电源系统
+telemetry,遥测,航天器工况参数机载测量与下传,canonical,case_insensitive,航天·测控通信
+telecommand,遥控指令,地面上行发送至航天器控制命令,canonical,case_insensitive,航天·测控通信
+spacecraft tracking,航天器跟踪,地面站对航天器测角测距测速,canonical,case_insensitive,航天·测控通信
+deep space network,深空网,全球分布大口径深空测控地面天线网,canonical,case_insensitive,航天·测控通信
+ground station,地面站,负责测控数传地面测控台站,canonical,case_insensitive,航天·测控通信
+Doppler tracking,多普勒跟踪,利用多普勒频移测量航天器径向速度,canonical,exact,航天·测控通信
+launch window,发射窗口,允许运载火箭点火起飞时间区间,canonical,case_insensitive,航天·任务运行
+countdown,倒计时,发射前各分系统协同准备倒计数,canonical,case_insensitive,航天·任务运行
+launch pad,发射工位,航天发射场火箭起飞平台及发射架,canonical,case_insensitive,航天·任务运行
+mission control center,任务控制中心,负责全任务指挥调度的地面飞控中心,canonical,case_insensitive,航天·任务运行
+orbit insertion,轨道注入,航天器达到入轨速度进入目标轨道,canonical,case_insensitive,航天·任务运行
+orbital rendezvous,空间交会,两航天器轨道控制逐步接近过程,canonical,case_insensitive,航天·任务运行
+docking,空间对接,交会后两航天器机械刚性锁紧连接,canonical,case_insensitive,航天·任务运行
+deorbit,离轨机动,实施减速制动离开运行轨道,canonical,case_insensitive,航天·任务运行
+extravehicular activity,舱外活动,航天员离开气闸舱在舱外作业太空行走,canonical,case_insensitive,航天·载人航天
+environmental control and life support system,环境控制与生命保障系统,生保系统,canonical,case_insensitive,航天·载人航天
+microgravity,微重力,在轨自由落体状态下接近零重力环境,canonical,case_insensitive,航天·空间环境
+space debris,空间碎片,废弃航天器与运载器残片太空垃圾,canonical,case_insensitive,航天·空间环境
+space weather,空间天气,太阳风暴高能带电粒子等地外环境变化,canonical,case_insensitive,航天·空间环境
+radiation belt,辐射带,范艾伦地磁俘获高能带电粒子辐射带,canonical,case_insensitive,航天·空间环境
+remote sensing,遥感,利用电磁波非接触探测地球表面信息,canonical,case_insensitive,航天·航天遥感
+synthetic aperture radar,合成孔径雷达,星载高分辨率成像雷达系统,canonical,case_insensitive,航天·航天遥感
+nadir,天底点,航天器指向地球中心星下点方向,canonical,case_insensitive,航天·航天遥感
+zenith,天顶,背离地球中心指向天球顶部的方向,canonical,case_insensitive,航天·航天遥感

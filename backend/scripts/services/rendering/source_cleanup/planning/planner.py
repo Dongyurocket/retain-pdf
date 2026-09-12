@@ -14,6 +14,7 @@ from services.rendering.source_cleanup.planning.items import iter_formula_item_r
 from services.rendering.source_cleanup.planning.items import iter_strip_item_rect_pairs_for_page
 from services.rendering.source_cleanup.planning.items import iter_strip_item_rects_for_page
 from services.rendering.source_cleanup.planning.items import item_should_emit_strip_rect
+from services.rendering.source_cleanup.planning.items import item_strip_bbox_for_page
 from services.rendering.source_cleanup.planning.page_gate import bbox_text_strip_items_skip_reason
 from services.rendering.source_cleanup.planning.rect_filter import rect_overlaps_any_unsafe_vector
 from services.rendering.source_cleanup.planning.rects import merge_rects
@@ -103,7 +104,7 @@ def plan_source_cleanup_page(
             protected_items=protected_items or [],
         )
 
-    resolver = PageBBoxResolver.build(page, bboxes=[item.get("bbox", []) for item in strip_items])
+    resolver = PageBBoxResolver.build(page, bboxes=[item_strip_bbox_for_page(item, page) for item in strip_items])
     strip_pairs = list(iter_strip_item_rect_pairs_for_page(page, strip_items, resolver=resolver, prefiltered=True))
     item_view_rects = merge_rects([pair.view_rect for pair in strip_pairs if not pair.view_rect.is_empty])
     if not item_view_rects:
@@ -175,7 +176,7 @@ def _plan_form_xobject_page(
     source_strip_rects = [
         rect
         for item in strip_items
-        if (rect := ocr_bbox_to_pdf_rect(page, item.get("bbox", []))) is not None
+        if (rect := ocr_bbox_to_pdf_rect(page, item_strip_bbox_for_page(item, page))) is not None
     ]
     strip_rects = merge_rects(
         segment
@@ -223,7 +224,7 @@ def page_uncovered_unsafe_vector_item_ids(page: fitz.Page, translated_items: lis
     strip_items = [item for item in translated_items if item_should_emit_strip_rect(item)]
     if not strip_items:
         return frozenset()
-    resolver = PageBBoxResolver.build(page, bboxes=[item.get("bbox", []) for item in strip_items])
+    resolver = PageBBoxResolver.build(page, bboxes=[item_strip_bbox_for_page(item, page) for item in strip_items])
     return uncovered_unsafe_vector_item_ids(
         iter_strip_item_rect_pairs_for_page(page, strip_items, resolver=resolver, prefiltered=True),
         unsafe_rects=resolver.unsafe_vector_index,

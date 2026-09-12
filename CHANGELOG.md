@@ -5,6 +5,27 @@
 
 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [SemVer](https://semver.org/lang/zh-CN/)。
 
+## [v4.3.6] - 2026-09-12
+
+### 修复与增强
+
+- **目录页码重叠修复（TOC Strip Rect 智能扩展）**：
+  - 针对学术论文/专著中带有较长稀疏点线（dot leaders）及行末右对齐页码的目录页（Contents / List of Figures / List of Tables），修复了 OCR 识别框因点线间隙截断导致页码未纳入底本清理矩形、并在 PDF 文本流删除前序操作符后发生光标坍塌位移到行首的重大排版缺陷；
+  - 在 `source_cleanup/planning` 中引入目录块横向智能扩展，自动将目录条目清理矩形延伸至页面内容安全右边界，确保原版点线与幽灵页码 100% 干净抹除，完全消除双层渲染下的页码重叠现象。
+- **航空·航天·力学领域权威双语术语库**：
+  - 收录严格符合 RetainPDF 单表容量规范与国家科学技术名词审定委员会标准的专业词库：`aerospace-mechanics-zh-cn.csv`（195 条精选旗舰综合表）、`aviation-200-zh-cn.csv`（200 条航空专精满额表）、`aviation-zh-cn.csv`（100 条）、`spaceflight-zh-cn.csv`（100 条）、`mechanics-zh-cn.csv`（100 条）及 `all-aerospace-mechanics-300-zh-cn.csv`（300 条全量汇编参考表）；
+  - 配套新增工程级校验工具 `backend/scripts/devtools/validate_glossary_csv.py`，支持严格表头、词条上限与多学科分布自动化检测。
+- **自动化测试强化**：
+  - 新增 `backend/python-tests/test_source_cleanup_toc_rect_expand.py`，全覆盖目录识别、A4/Letter 边界扩展计算与端到端清理规划逻辑。
+
+### 安装包
+
+- Windows：由 GitHub Actions 构建 `RetainPDF-Windows-4.3.6-Setup.exe`
+- macOS：由 GitHub Actions 构建 `RetainPDF-Mac-4.3.6.dmg`
+- Linux：由 GitHub Actions 构建 `RetainPDF-Linux-4.3.6.deb`
+
+[v4.3.6]: https://github.com/Dongyurocket/retain-pdf/releases/tag/v4.3.6
+
 ## [v4.3.5] - 2026-09-12
 
 ### 新增与修复

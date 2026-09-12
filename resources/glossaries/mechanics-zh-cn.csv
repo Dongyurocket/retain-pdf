@@ -1,0 +1,101 @@
+source,target,note,level,match_mode,context
+kinematics,运动学,规范译名,canonical,case_insensitive,力学·理论力学
+kinetics,动力学,规范译名,canonical,case_insensitive,力学·理论力学
+statics,静力学,规范译名,canonical,case_insensitive,力学·理论力学
+rigid body,刚体,规范译名,canonical,case_insensitive,力学·理论力学
+particle,质点,规范译名,canonical,case_insensitive,力学·理论力学
+degree of freedom,自由度,规范译名,canonical,case_insensitive,力学·理论力学
+generalized coordinate,广义坐标,规范译名,canonical,case_insensitive,力学·分析力学
+generalized force,广义力,规范译名,canonical,case_insensitive,力学·分析力学
+virtual displacement,虚位移,规范译名,canonical,case_insensitive,力学·分析力学
+principle of virtual work,虚功原理,规范译名,canonical,case_insensitive,力学·分析力学
+D'Alembert principle,达朗贝尔原理,人名原理,canonical,exact,力学·分析力学
+Hamilton's principle,哈密顿原理,人名原理,canonical,exact,力学·分析力学
+Lagrange equations,拉格朗日方程,人名方程,canonical,exact,力学·分析力学
+Euler-Lagrange equation,欧拉-拉格朗日方程,人名方程,canonical,exact,力学·分析力学
+Poisson bracket,泊松括号,人名术语,canonical,exact,力学·分析力学
+Hamiltonian mechanics,哈密顿力学,经典力学哈密顿表述,canonical,case_insensitive,力学·分析力学
+Lagrangian mechanics,拉格朗日力学,经典力学拉格朗日表述,canonical,case_insensitive,力学·分析力学
+continuum mechanics,连续介质力学,规范译名,canonical,case_insensitive,力学·连续介质力学
+deformation gradient,变形梯度,规范译名,canonical,case_insensitive,力学·连续介质力学
+strain tensor,应变张量,规范译名,canonical,case_insensitive,力学·连续介质力学
+stress tensor,应力张量,规范译名,canonical,case_insensitive,力学·连续介质力学
+Cauchy stress,柯西应力,人名术语,canonical,exact,力学·连续介质力学
+Cauchy-Green deformation tensor,柯西-格林变形张量,人名术语,canonical,exact,力学·连续介质力学
+constitutive equation,本构方程,规范译名,canonical,case_insensitive,力学·连续介质力学
+material derivative,物质导数,规范译名,canonical,case_insensitive,力学·连续介质力学
+mass conservation,质量守恒,规范译名,canonical,case_insensitive,力学·连续介质力学
+linear momentum balance,线动量平衡,规范译名,canonical,case_insensitive,力学·连续介质力学
+angular momentum balance,角动量平衡,规范译名,canonical,case_insensitive,力学·连续介质力学
+material objectivity,物质客观性,连续介质本构术语,canonical,case_insensitive,力学·连续介质力学
+elasticity,弹性,材料力学术语,canonical,case_insensitive,力学·固体力学
+plasticity,塑性,材料力学术语,canonical,case_insensitive,力学·固体力学
+viscoelasticity,黏弹性,规范译名,canonical,case_insensitive,力学·固体力学
+viscoplasticity,黏塑性,规范译名,canonical,case_insensitive,力学·固体力学
+stress relaxation,应力松弛,材料黏弹性行为,canonical,case_insensitive,力学·固体力学
+isotropic material,各向同性材料,规范译名,canonical,case_insensitive,力学·固体力学
+anisotropic material,各向异性材料,规范译名,canonical,case_insensitive,力学·固体力学
+orthotropic material,正交各向异性材料,规范译名,canonical,case_insensitive,力学·固体力学
+Young's modulus,杨氏模量,人名术语,canonical,exact,力学·材料力学
+Poisson's ratio,泊松比,人名术语,canonical,exact,力学·材料力学
+shear modulus,剪切模量,规范译名,canonical,case_insensitive,力学·材料力学
+bulk modulus,体积模量,规范译名,canonical,case_insensitive,力学·材料力学
+yield stress,屈服应力,规范译名,canonical,case_insensitive,力学·材料力学
+hardening,硬化,塑性材料术语,canonical,case_insensitive,力学·材料力学
+creep,蠕变,材料时变变形术语,canonical,case_insensitive,力学·材料力学
+residual stress,残余应力,规范译名,canonical,case_insensitive,力学·材料力学
+fluid mechanics,流体力学,规范译名,canonical,case_insensitive,力学·流体力学
+fluid dynamics,流体动力学,规范译名,canonical,case_insensitive,力学·流体力学
+viscosity,黏度,规范译名,canonical,case_insensitive,力学·流体力学
+Newtonian fluid,牛顿流体,人名术语,canonical,exact,力学·流体力学
+incompressible flow,不可压缩流动,规范译名,canonical,case_insensitive,力学·流体力学
+compressible flow,可压缩流动,规范译名,canonical,case_insensitive,力学·流体力学
+Reynolds number,雷诺数,人名无量纲数,canonical,exact,力学·流体力学
+Navier-Stokes equations,纳维-斯托克斯方程,人名方程,canonical,exact,力学·流体力学
+vorticity,涡量,规范译名,canonical,case_insensitive,力学·流体力学
+stream function,流函数,规范译名,canonical,case_insensitive,力学·流体力学
+potential flow,势流,规范译名,canonical,case_insensitive,力学·流体力学
+structural mechanics,结构力学,规范译名,canonical,case_insensitive,力学·结构力学
+beam,梁,结构构件术语,canonical,case_insensitive,力学·结构力学
+plate,板,结构构件术语,canonical,case_insensitive,力学·结构力学
+shell,壳,结构构件术语,canonical,case_insensitive,力学·结构力学
+truss,桁架,结构体系术语,canonical,case_insensitive,力学·结构力学
+buckling,屈曲,稳定问题术语,canonical,case_insensitive,力学·结构力学
+stability,稳定性,结构稳定术语,canonical,case_insensitive,力学·结构力学
+bending moment,弯矩,规范译名,canonical,case_insensitive,力学·结构力学
+shear force,剪力,规范译名,canonical,case_insensitive,力学·结构力学
+torsion,扭转,规范译名,canonical,case_insensitive,力学·结构力学
+fracture mechanics,断裂力学,规范译名,canonical,case_insensitive,力学·断裂力学
+linear elastic fracture mechanics,线弹性断裂力学,规范译名,canonical,case_insensitive,力学·断裂力学
+stress intensity factor,应力强度因子,规范译名,canonical,case_insensitive,力学·断裂力学
+fracture toughness,断裂韧度,规范译名,canonical,case_insensitive,力学·断裂力学
+energy release rate,能量释放率,规范译名,canonical,case_insensitive,力学·断裂力学
+fracture energy,断裂能,裂纹扩展单位面积耗能,canonical,case_insensitive,力学·断裂力学
+J-integral,J积分,断裂参量,canonical,exact,力学·断裂力学
+crack tip,裂纹尖端,规范译名,canonical,case_insensitive,力学·断裂力学
+crack initiation,裂纹萌生,规范译名,canonical,case_insensitive,力学·断裂力学
+fatigue,疲劳,规范译名,canonical,case_insensitive,力学·疲劳
+fatigue life,疲劳寿命,规范译名,canonical,case_insensitive,力学·疲劳
+fatigue crack growth,疲劳裂纹扩展,规范译名,canonical,case_insensitive,力学·疲劳
+S-N curve,S-N曲线,疲劳寿命曲线,canonical,exact,力学·疲劳
+vibration,振动,规范译名,canonical,case_insensitive,力学·振动
+free vibration,自由振动,规范译名,canonical,case_insensitive,力学·振动
+forced vibration,受迫振动,规范译名,canonical,case_insensitive,力学·振动
+damping,阻尼,规范译名,canonical,case_insensitive,力学·振动
+damping ratio,阻尼比,规范译名,canonical,case_insensitive,力学·振动
+resonance,共振,规范译名,canonical,case_insensitive,力学·振动
+natural frequency,固有频率,规范译名,canonical,case_insensitive,力学·振动
+mode shape,振型,规范译名,canonical,case_insensitive,力学·振动
+wave equation,波动方程,规范译名,canonical,case_insensitive,力学·波动
+dispersion relation,色散关系,规范译名,canonical,case_insensitive,力学·波动
+standing wave,驻波,规范译名,canonical,case_insensitive,力学·波动
+computational mechanics,计算力学,规范译名,canonical,case_insensitive,力学·计算力学
+finite element method,有限元法,规范译名,canonical,case_insensitive,力学·计算力学
+finite difference method,有限差分法,规范译名,canonical,case_insensitive,力学·计算力学
+boundary element method,边界元法,规范译名,canonical,case_insensitive,力学·计算力学
+meshfree method,无网格法,规范译名,canonical,case_insensitive,力学·计算力学
+finite volume method,有限体积法,规范译名,canonical,case_insensitive,力学·计算力学
+mesh,网格,计算离散术语,canonical,case_insensitive,力学·计算力学
+time integration,时间积分,数值时间离散术语,canonical,case_insensitive,力学·计算力学
+nonlinear analysis,非线性分析,规范译名,canonical,case_insensitive,力学·计算力学
+convergence,收敛,数值计算术语,canonical,case_insensitive,力学·计算力学

@@ -1,0 +1,196 @@
+source,target,note,level,match_mode,context
+angle of attack,迎角,航空语境规范译名,canonical,case_insensitive,航空·空气动力学
+angle of sideslip,侧滑角,规范译名,canonical,case_insensitive,航空·空气动力学
+airfoil,翼型,规范译名,canonical,case_insensitive,航空·空气动力学
+camber,弯度,翼型几何语境,canonical,case_insensitive,航空·空气动力学
+chord line,弦线,规范译名,canonical,case_insensitive,航空·空气动力学
+leading edge,前缘,机翼或翼型语境,canonical,case_insensitive,航空·空气动力学
+trailing edge,后缘,机翼或翼型语境,canonical,case_insensitive,航空·空气动力学
+wing loading,翼载荷,规范译名,canonical,case_insensitive,航空·空气动力学
+aspect ratio,展弦比,机翼几何语境,canonical,case_insensitive,航空·空气动力学
+lift coefficient,升力系数,规范译名,canonical,case_insensitive,航空·空气动力学
+drag coefficient,阻力系数,规范译名,canonical,case_insensitive,航空·空气动力学
+lift-to-drag ratio,升阻比,规范译名,canonical,case_insensitive,航空·空气动力学
+induced drag,诱导阻力,规范译名,canonical,case_insensitive,航空·空气动力学
+parasite drag,寄生阻力,规范译名,canonical,case_insensitive,航空·空气动力学
+boundary layer,边界层,规范译名,canonical,case_insensitive,航空·空气动力学
+laminar flow,层流,规范译名,canonical,case_insensitive,航空·空气动力学
+turbulent flow,湍流,规范译名,canonical,case_insensitive,航空·空气动力学
+flow separation,气流分离,航空气动语境,canonical,case_insensitive,航空·空气动力学
+stall,失速,航空器气动语境,canonical,case_insensitive,航空·空气动力学
+Mach number,马赫数,规范译名,canonical,exact,航空·空气动力学
+pitch angle,俯仰角,规范译名,canonical,case_insensitive,航空·飞行力学
+roll angle,滚转角,规范译名,canonical,case_insensitive,航空·飞行力学
+yaw angle,偏航角,规范译名,canonical,case_insensitive,航空·飞行力学
+load factor,载荷因数,航空器性能语境,canonical,case_insensitive,航空·飞行力学
+static stability,静稳定性,规范译名,canonical,case_insensitive,航空·飞行力学
+dynamic stability,动稳定性,规范译名,canonical,case_insensitive,航空·飞行力学
+longitudinal stability,纵向稳定性,规范译名,canonical,case_insensitive,航空·飞行力学
+lateral stability,横向稳定性,规范译名,canonical,case_insensitive,航空·飞行力学
+directional stability,航向稳定性,航空器稳定性语境,canonical,case_insensitive,航空·飞行力学
+trim,配平,航空器姿态与操纵语境,canonical,case_insensitive,航空·飞行力学
+ground effect,地面效应,航空器近地飞行语境,canonical,case_insensitive,航空·飞行性能
+service ceiling,实用升限,规范译名,canonical,case_insensitive,航空·飞行性能
+rate of climb,爬升率,规范译名,canonical,case_insensitive,航空·飞行性能
+true airspeed,真空速,规范译名,canonical,case_insensitive,航空·飞行性能
+stall speed,失速速度,规范译名,canonical,case_insensitive,航空·飞行性能
+fuselage,机身,规范译名,canonical,case_insensitive,航空·航空器结构
+semimonocoque structure,半硬壳式结构,航空器结构语境,canonical,case_insensitive,航空·航空器结构
+wing spar,翼梁,规范译名,canonical,case_insensitive,航空·航空器结构
+wing rib,翼肋,规范译名,canonical,case_insensitive,航空·航空器结构
+stringer,长桁,航空器纵向加强构件,canonical,case_insensitive,航空·航空器结构
+skin,蒙皮,航空器结构语境,canonical,case_insensitive,航空·航空器结构
+empennage,尾翼,规范译名,canonical,case_insensitive,航空·航空器结构
+landing gear,起落架,规范译名,canonical,case_insensitive,航空·航空器结构
+flap,襟翼,机翼增升装置,canonical,case_insensitive,航空·航空器结构
+slat,缝翼,前缘增升装置,canonical,case_insensitive,航空·航空器结构
+turbofan engine,涡轮风扇发动机,规范译名,canonical,case_insensitive,航空·航空发动机
+turbojet engine,涡轮喷气发动机,规范译名,canonical,case_insensitive,航空·航空发动机
+turboprop engine,涡轮螺旋桨发动机,规范译名,canonical,case_insensitive,航空·航空发动机
+compressor,压气机,航空发动机语境,canonical,case_insensitive,航空·航空发动机
+combustion chamber,燃烧室,航空发动机语境,canonical,case_insensitive,航空·航空发动机
+turbine inlet temperature,涡轮进口温度,规范译名,canonical,case_insensitive,航空·航空发动机
+afterburner,加力燃烧室,航空发动机部件,canonical,case_insensitive,航空·航空发动机
+bypass ratio,涵道比,涡轮风扇发动机语境,canonical,case_insensitive,航空·航空发动机
+thrust-specific fuel consumption,推力比油耗,规范译名,canonical,case_insensitive,航空·航空发动机
+engine pressure ratio,发动机压力比,规范译名,canonical,case_insensitive,航空·航空发动机
+aileron,副翼,规范译名,canonical,case_insensitive,航空·飞行控制
+elevator,升降舵,航空器操纵面语境,canonical,case_insensitive,航空·飞行控制
+rudder,方向舵,航空器操纵面语境,canonical,case_insensitive,航空·飞行控制
+autopilot,自动驾驶仪,规范译名,canonical,case_insensitive,航空·飞行控制
+flight director,飞行指引仪,规范译名,canonical,case_insensitive,航空·航电导航
+inertial navigation system,惯性导航系统,规范译名,canonical,case_insensitive,航空·航电导航
+instrument landing system,仪表着陆系统,规范译名,canonical,case_insensitive,航空·航电导航
+VOR,甚高频全向信标,航空导航缩写,canonical,exact,航空·航电导航
+DME,测距设备,航空导航缩写,canonical,exact,航空·航电导航
+transponder,应答机,航空监视语境,canonical,case_insensitive,航空·航电导航
+orbital elements,轨道根数,轨道描述参数集合,canonical,case_insensitive,航天·轨道力学
+semimajor axis,半长轴,轨道椭圆参数,canonical,case_insensitive,航天·轨道力学
+eccentricity,偏心率,轨道要素语境,canonical,case_insensitive,航天·轨道力学
+inclination,轨道倾角,轨道要素语境,canonical,case_insensitive,航天·轨道力学
+right ascension of ascending node,升交点赤经,规范译名,canonical,case_insensitive,航天·轨道力学
+argument of perigee,近地点幅角,地球轨道语境,canonical,case_insensitive,航天·轨道力学
+true anomaly,真近点角,规范译名,canonical,case_insensitive,航天·轨道力学
+periapsis,近拱点,通用中心天体轨道语境,canonical,case_insensitive,航天·轨道力学
+apoapsis,远拱点,通用中心天体轨道语境,canonical,case_insensitive,航天·轨道力学
+perigee,近地点,地球轨道语境,canonical,case_insensitive,航天·轨道力学
+apogee,远地点,地球轨道语境,canonical,case_insensitive,航天·轨道力学
+orbital period,轨道周期,规范译名,canonical,case_insensitive,航天·轨道力学
+orbital velocity,轨道速度,规范译名,canonical,case_insensitive,航天·轨道力学
+escape velocity,逃逸速度,规范译名,canonical,case_insensitive,航天·轨道力学
+geostationary orbit,地球静止轨道,规范译名,canonical,case_insensitive,航天·轨道力学
+geosynchronous orbit,地球同步轨道,规范译名,canonical,case_insensitive,航天·轨道力学
+low Earth orbit,低地球轨道,规范译名,canonical,case_insensitive,航天·轨道力学
+Sun-synchronous orbit,太阳同步轨道,规范译名,canonical,case_insensitive,航天·轨道力学
+transfer orbit,转移轨道,规范译名,canonical,case_insensitive,航天·轨道力学
+Hohmann transfer,霍曼转移,人名轨道转移术语,canonical,exact,航天·轨道力学
+launch vehicle,运载火箭,规范译名,canonical,case_insensitive,航天·运载器
+payload,有效载荷,航天任务语境,canonical,case_insensitive,航天·运载器
+payload fairing,有效载荷整流罩,规范译名,canonical,case_insensitive,航天·运载器
+booster,助推器,运载火箭语境,canonical,case_insensitive,航天·运载器
+rocket stage,火箭级,规范译名,canonical,case_insensitive,航天·运载器
+stage separation,级间分离,运载火箭语境,canonical,case_insensitive,航天·运载器
+specific impulse,比冲,推进系统性能参数,canonical,case_insensitive,航天·运载器
+thrust-to-weight ratio,推重比,规范译名,canonical,case_insensitive,航天·运载器
+thrust vector control,推力矢量控制,规范译名,canonical,case_insensitive,航天·运载器
+solid rocket motor,固体火箭发动机,规范译名,canonical,case_insensitive,航天·运载器
+spacecraft,航天器,规范译名,canonical,case_insensitive,航天·航天器总体
+satellite,卫星,航天器语境,canonical,case_insensitive,航天·航天器总体
+space probe,空间探测器,规范译名,canonical,case_insensitive,航天·深空探测
+orbiter,轨道器,空间探测任务语境,canonical,case_insensitive,航天·深空探测
+lander,着陆器,空间探测任务语境,canonical,case_insensitive,航天·深空探测
+rover,巡视器,星面移动探测语境,canonical,case_insensitive,航天·深空探测
+service module,服务舱,载人航天器语境,canonical,case_insensitive,航天·航天器总体
+command module,指令舱,载人航天器语境,canonical,case_insensitive,航天·航天器总体
+attitude control,姿态控制,规范译名,canonical,case_insensitive,航天·制导导航控制
+reaction wheel,反作用飞轮,航天器姿态控制执行机构,canonical,case_insensitive,航天·制导导航控制
+control moment gyroscope,控制力矩陀螺,航天器姿态控制执行机构,canonical,case_insensitive,航天·制导导航控制
+star tracker,星敏感器,航天器姿态测量设备,canonical,case_insensitive,航天·制导导航控制
+Sun sensor,太阳敏感器,航天器姿态测量设备,canonical,case_insensitive,航天·制导导航控制
+Earth sensor,地球敏感器,航天器姿态测量设备,canonical,case_insensitive,航天·制导导航控制
+magnetorquer,磁力矩器,航天器姿态控制执行机构,canonical,case_insensitive,航天·制导导航控制
+orbital maneuvering system,轨道机动系统,规范译名,canonical,case_insensitive,航天·推进
+chemical propulsion,化学推进,规范译名,canonical,case_insensitive,航天·推进
+electric propulsion,电推进,规范译名,canonical,case_insensitive,航天·推进
+Hall-effect thruster,霍尔效应推力器,规范译名,canonical,exact,航天·推进
+ion thruster,离子推力器,规范译名,canonical,case_insensitive,航天·推进
+solar array,太阳电池阵,航天器电源语境,canonical,case_insensitive,航天·电源
+spacecraft battery,航天器蓄电池,消除通用电池歧义,canonical,case_insensitive,航天·电源
+telemetry,遥测,航天测控语境,canonical,case_insensitive,航天·测控通信
+telecommand,遥控指令,航天测控语境,canonical,case_insensitive,航天·测控通信
+spacecraft tracking,航天器跟踪,航天测控语境,canonical,case_insensitive,航天·测控通信
+launch window,发射窗口,规范译名,canonical,case_insensitive,航天·任务运行
+mission control center,任务控制中心,规范译名,canonical,case_insensitive,航天·任务运行
+deep space network,深空网,深空测控通信网络,canonical,case_insensitive,航天·任务运行
+extravehicular activity,舱外活动,规范译名,canonical,case_insensitive,航天·载人航天
+microgravity,微重力,规范译名,canonical,case_insensitive,航天·空间环境
+space debris,空间碎片,规范译名,canonical,case_insensitive,航天·空间环境
+space weather,空间天气,规范译名,canonical,case_insensitive,航天·空间环境
+radiation belt,辐射带,空间环境语境,canonical,case_insensitive,航天·空间环境
+remote sensing,遥感,规范译名,canonical,case_insensitive,航天·航天遥感
+synthetic aperture radar,合成孔径雷达,规范译名,canonical,case_insensitive,航天·航天遥感
+kinematics,运动学,规范译名,canonical,case_insensitive,力学·理论力学
+dynamics,动力学,力学学科语境,canonical,case_insensitive,力学·理论力学
+statics,静力学,规范译名,canonical,case_insensitive,力学·理论力学
+degree of freedom,自由度,规范译名,canonical,case_insensitive,力学·理论力学
+generalized coordinate,广义坐标,规范译名,canonical,case_insensitive,力学·分析力学
+virtual displacement,虚位移,规范译名,canonical,case_insensitive,力学·分析力学
+principle of virtual work,虚功原理,规范译名,canonical,case_insensitive,力学·分析力学
+D'Alembert principle,达朗贝尔原理,人名原理,canonical,exact,力学·分析力学
+Hamilton's principle,哈密顿原理,人名原理,canonical,exact,力学·分析力学
+Lagrange equations,拉格朗日方程,人名方程,canonical,exact,力学·分析力学
+continuum mechanics,连续介质力学,规范译名,canonical,case_insensitive,力学·连续介质力学
+deformation gradient,变形梯度,规范译名,canonical,case_insensitive,力学·连续介质力学
+strain tensor,应变张量,规范译名,canonical,case_insensitive,力学·连续介质力学
+stress tensor,应力张量,规范译名,canonical,case_insensitive,力学·连续介质力学
+Cauchy stress,柯西应力,人名术语,canonical,exact,力学·连续介质力学
+constitutive equation,本构方程,规范译名,canonical,case_insensitive,力学·连续介质力学
+material derivative,物质导数,规范译名,canonical,case_insensitive,力学·连续介质力学
+mass conservation,质量守恒,规范译名,canonical,case_insensitive,力学·连续介质力学
+linear momentum balance,线动量平衡,规范译名,canonical,case_insensitive,力学·连续介质力学
+elasticity,弹性,材料性质语境,canonical,case_insensitive,力学·固体力学
+plasticity,塑性,材料性质语境,canonical,case_insensitive,力学·固体力学
+viscoelasticity,黏弹性,规范译名,canonical,case_insensitive,力学·固体力学
+anisotropic material,各向异性材料,规范译名,canonical,case_insensitive,力学·固体力学
+Young's modulus,杨氏模量,人名术语,canonical,exact,力学·材料力学
+Poisson's ratio,泊松比,人名术语,canonical,exact,力学·材料力学
+shear modulus,剪切模量,规范译名,canonical,case_insensitive,力学·材料力学
+yield stress,屈服应力,规范译名,canonical,case_insensitive,力学·材料力学
+creep,蠕变,材料时变变形语境,canonical,case_insensitive,力学·材料力学
+residual stress,残余应力,规范译名,canonical,case_insensitive,力学·材料力学
+fluid mechanics,流体力学,规范译名,canonical,case_insensitive,力学·流体力学
+fluid dynamics,流体动力学,规范译名,canonical,case_insensitive,力学·流体力学
+viscosity,黏度,规范译名,canonical,case_insensitive,力学·流体力学
+Newtonian fluid,牛顿流体,人名术语,canonical,exact,力学·流体力学
+incompressible flow,不可压缩流动,规范译名,canonical,case_insensitive,力学·流体力学
+compressible flow,可压缩流动,规范译名,canonical,case_insensitive,力学·流体力学
+Navier-Stokes equations,纳维-斯托克斯方程,人名方程,canonical,exact,力学·流体力学
+vorticity,涡量,规范译名,canonical,case_insensitive,力学·流体力学
+structural mechanics,结构力学,规范译名,canonical,case_insensitive,力学·结构力学
+beam,梁,结构构件语境,canonical,case_insensitive,力学·结构力学
+plate,板,结构构件语境,canonical,case_insensitive,力学·结构力学
+shell,壳,结构构件语境,canonical,case_insensitive,力学·结构力学
+truss,桁架,结构体系语境,canonical,case_insensitive,力学·结构力学
+buckling,屈曲,结构稳定语境,canonical,case_insensitive,力学·结构力学
+bending moment,弯矩,规范译名,canonical,case_insensitive,力学·结构力学
+fracture mechanics,断裂力学,规范译名,canonical,case_insensitive,力学·断裂与疲劳
+stress intensity factor,应力强度因子,规范译名,canonical,case_insensitive,力学·断裂与疲劳
+fracture toughness,断裂韧度,规范译名,canonical,case_insensitive,力学·断裂与疲劳
+energy release rate,能量释放率,断裂力学语境,canonical,case_insensitive,力学·断裂与疲劳
+J-integral,J积分,保留大写J,canonical,exact,力学·断裂与疲劳
+fatigue life,疲劳寿命,规范译名,canonical,case_insensitive,力学·断裂与疲劳
+fatigue crack growth,疲劳裂纹扩展,规范译名,canonical,case_insensitive,力学·断裂与疲劳
+vibration,振动,规范译名,canonical,case_insensitive,力学·振动与波动
+free vibration,自由振动,规范译名,canonical,case_insensitive,力学·振动与波动
+forced vibration,受迫振动,规范译名,canonical,case_insensitive,力学·振动与波动
+damping ratio,阻尼比,规范译名,canonical,case_insensitive,力学·振动与波动
+resonance,共振,规范译名,canonical,case_insensitive,力学·振动与波动
+natural frequency,固有频率,规范译名,canonical,case_insensitive,力学·振动与波动
+mode shape,振型,规范译名,canonical,case_insensitive,力学·振动与波动
+wave equation,波动方程,规范译名,canonical,case_insensitive,力学·振动与波动
+computational mechanics,计算力学,规范译名,canonical,case_insensitive,力学·计算力学
+finite element method,有限元法,规范译名,canonical,case_insensitive,力学·计算力学
+finite difference method,有限差分法,规范译名,canonical,case_insensitive,力学·计算力学
+boundary element method,边界元法,规范译名,canonical,case_insensitive,力学·计算力学
+finite volume method,有限体积法,规范译名,canonical,case_insensitive,力学·计算力学
+meshfree method,无网格法,规范译名,canonical,case_insensitive,力学·计算力学

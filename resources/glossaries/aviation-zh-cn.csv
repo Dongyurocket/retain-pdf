@@ -1,0 +1,101 @@
+source,target,note,level,match_mode,context
+lift,升力,飞行器四个基本力之一,canonical,case_insensitive,航空·空气动力学
+drag,阻力,飞行器四个基本力之一,canonical,case_insensitive,航空·空气动力学
+thrust,推力,飞行器四个基本力之一,canonical,case_insensitive,航空·空气动力学
+weight,重量,四力平衡模型译为重量,canonical,case_insensitive,航空·飞行力学
+angle of attack,迎角,规范用词又称攻角,canonical,case_insensitive,航空·空气动力学
+angle of incidence,安装角,机翼安装基准夹角,canonical,case_insensitive,航空·空气动力学
+airfoil,翼型,规范译名,canonical,case_insensitive,航空·空气动力学
+camber,弯度,翼型剖面中弧线几何,canonical,case_insensitive,航空·空气动力学
+chord line,弦线,前缘与后缘连线,canonical,case_insensitive,航空·空气动力学
+boundary layer,边界层,黏性附面层,canonical,case_insensitive,航空·空气动力学
+laminar flow,层流,规范译名,canonical,case_insensitive,航空·空气动力学
+turbulent flow,湍流,规范译名,canonical,case_insensitive,航空·空气动力学
+stall,失速,气流分离升力骤降,canonical,case_insensitive,航空·空气动力学
+critical angle of attack,临界迎角,失速迎角,canonical,case_insensitive,航空·空气动力学
+aspect ratio,展弦比,机翼几何参数,canonical,case_insensitive,航空·空气动力学
+induced drag,诱导阻力,升力衍生阻力,canonical,case_insensitive,航空·空气动力学
+parasite drag,寄生阻力,非升力构件阻力,canonical,case_insensitive,航空·空气动力学
+ground effect,地面效应,近地气动特性改变,canonical,case_insensitive,航空·空气动力学
+compressibility,可压缩性,高速气流特性,canonical,case_insensitive,航空·空气动力学
+Mach number,马赫数,规范译名,canonical,exact,航空·空气动力学
+static stability,静稳定性,受扰后初始恢复趋势,canonical,case_insensitive,航空·飞行力学
+dynamic stability,动稳定性,扰动响应时域收敛性,canonical,case_insensitive,航空·飞行力学
+longitudinal stability,纵向稳定性,绕横轴稳定性,canonical,case_insensitive,航空·飞行力学
+lateral stability,横向稳定性,绕纵轴稳定性,canonical,case_insensitive,航空·飞行力学
+directional stability,航向稳定性,绕立轴稳定性,canonical,case_insensitive,航空·飞行力学
+center of gravity,重心,规范译名,canonical,case_insensitive,航空·飞行力学
+center of pressure,压力中心,气动力作用中心,canonical,case_insensitive,航空·空气动力学
+pitch,俯仰,绕横轴旋转,canonical,case_insensitive,航空·飞行力学
+roll,滚转,横滚运动,canonical,case_insensitive,航空·飞行力学
+yaw,偏航,绕立轴旋转,canonical,case_insensitive,航空·飞行力学
+load factor,载荷因数,升重比,canonical,case_insensitive,航空·飞行力学
+pitching moment,俯仰力矩,纵向气动力矩,canonical,case_insensitive,航空·飞行力学
+fuselage,机身,规范译名,canonical,case_insensitive,航空·航空器结构
+wing,机翼,主升力面,canonical,case_insensitive,航空·航空器结构
+empennage,尾翼,尾部安定与操纵面,canonical,case_insensitive,航空·航空器结构
+horizontal stabilizer,水平安定面,纵向安定面,canonical,case_insensitive,航空·航空器结构
+vertical stabilizer,垂直安定面,垂尾垂直安定面,canonical,case_insensitive,航空·航空器结构
+rudder,方向舵,航向操纵面,canonical,case_insensitive,航空·航空器结构
+elevator,升降舵,纵向操纵面,canonical,case_insensitive,航空·航空器结构
+aileron,副翼,横向操纵面,canonical,case_insensitive,航空·航空器结构
+flap,襟翼,后缘增升装置,canonical,case_insensitive,航空·航空器结构
+slat,缝翼,前缘增升缝翼,canonical,case_insensitive,航空·航空器结构
+spoiler,扰流板,减升阻流装置,canonical,case_insensitive,航空·航空器结构
+landing gear,起落架,规范译名,canonical,case_insensitive,航空·航空器结构
+semi-monocoque structure,半硬壳式结构,蒙皮骨架共同受力结构,canonical,case_insensitive,航空·航空器结构
+wing spar,翼梁,机翼主承力纵梁,canonical,case_insensitive,航空·航空器结构
+wing rib,翼肋,机翼横向横隔结构,canonical,case_insensitive,航空·航空器结构
+stringer,长桁,机身与机翼纵向加强条,canonical,case_insensitive,航空·航空器结构
+skin,蒙皮,航空器外部气动外板,canonical,case_insensitive,航空·航空器结构
+reciprocating engine,活塞发动机,往复式航空内燃机,canonical,case_insensitive,航空·航空发动机
+turboprop engine,涡轮螺旋桨发动机,涡桨发动机,canonical,case_insensitive,航空·航空发动机
+turbojet engine,涡轮喷气发动机,涡喷发动机,canonical,case_insensitive,航空·航空发动机
+turbofan engine,涡轮风扇发动机,涡扇发动机,canonical,case_insensitive,航空·航空发动机
+turboshaft engine,涡轮轴发动机,涡轴发动机,canonical,case_insensitive,航空·航空发动机
+propeller,螺旋桨,规范译名,canonical,case_insensitive,航空·航空发动机
+propeller governor,螺旋桨调速器,恒速变距调节器,canonical,case_insensitive,航空·航空发动机
+carburetor,化油器,活塞机供油混合装置,canonical,case_insensitive,航空·航空发动机
+fuel injection,燃油喷射,燃油直接喷射系统,canonical,case_insensitive,航空·航空发动机
+induction system,进气系统,发动机充气与进气流道,canonical,case_insensitive,航空·航空发动机
+exhaust system,排气系统,废气排出通道,canonical,case_insensitive,航空·航空发动机
+magneto,磁电机,航空活塞独立点火源,canonical,case_insensitive,航空·航空发动机
+manifold pressure,进气歧管压力,发动机负荷指标,canonical,case_insensitive,航空·航空发动机
+primary flight controls,主飞行操纵面,升降舵副翼方向舵,canonical,case_insensitive,航空·飞行控制
+secondary flight controls,辅助飞行操纵面,襟翼扰流板配平片,canonical,case_insensitive,航空·飞行控制
+control yoke,驾驶盘,民航常用操纵装置,canonical,case_insensitive,航空·飞行控制
+control stick,操纵杆,战斗机与轻型机操纵杆,canonical,case_insensitive,航空·飞行控制
+trim tab,配平片,操纵力卸载辅助舵面,canonical,case_insensitive,航空·飞行控制
+autopilot,自动驾驶仪,自动飞行控制系统,canonical,case_insensitive,航空·飞行控制
+stability augmentation system,稳定性增强系统,飞行增稳系统,canonical,case_insensitive,航空·飞行控制
+fly-by-wire,电传操纵,电信号飞行操纵系统,canonical,case_insensitive,航空·飞行控制
+yaw damper,偏航阻尼器,荷兰滚抑制装置,canonical,case_insensitive,航空·飞行控制
+avionics,航空电子设备,机载航电设备总称,canonical,case_insensitive,航空·航电导航
+pitot-static system,皮托管静压系统,全压静压测量系统,canonical,case_insensitive,航空·航电导航
+airspeed indicator,空速表,规范仪表名,canonical,case_insensitive,航空·航电导航
+altimeter,高度表,气压高度计,canonical,case_insensitive,航空·航电导航
+vertical speed indicator,垂直速度表,升降速度表,canonical,case_insensitive,航空·航电导航
+attitude indicator,姿态指示器,人工地平仪,canonical,case_insensitive,航空·航电导航
+heading indicator,航向指示器,定向陀螺仪,canonical,case_insensitive,航空·航电导航
+magnetic compass,磁罗盘,规范译名,canonical,case_insensitive,航空·航电导航
+VOR,甚高频全向信标,导航地面台及接收机,canonical,exact,航空·航电导航
+DME,测距设备,距离测量设备,canonical,exact,航空·航电导航
+NDB,无方向性信标,中低频导航信标,canonical,exact,航空·航电导航
+ILS,仪表着陆系统,盲降系统,canonical,exact,航空·航电导航
+GPS,全球定位系统,卫星导航定位系统,canonical,exact,航空·航电导航
+GNSS,全球导航卫星系统,通用卫星导航体系,canonical,exact,航空·航电导航
+transponder,应答机,二次雷达二次监视应答,canonical,case_insensitive,航空·航电导航
+takeoff,起飞,飞行阶段,canonical,case_insensitive,航空·性能与机场运行
+landing,着陆,飞行阶段,canonical,case_insensitive,航空·性能与机场运行
+climb,爬升,上升航段,canonical,case_insensitive,航空·性能与机场运行
+descent,下降,下降航段,canonical,case_insensitive,航空·性能与机场运行
+cruise,巡航,平飞巡航阶段,canonical,case_insensitive,航空·性能与机场运行
+range,航程,飞行最大距离,canonical,case_insensitive,航空·性能与机场运行
+endurance,续航时间,最大飞行时间,canonical,case_insensitive,航空·性能与机场运行
+service ceiling,实用升限,维持爬升率最大高度,canonical,case_insensitive,航空·性能与机场运行
+rate of climb,爬升率,垂直上升速度,canonical,case_insensitive,航空·性能与机场运行
+stall speed,失速速度,临界失速飞行速度,canonical,case_insensitive,航空·性能与机场运行
+rotation speed,抬轮速度,起飞抬头离地速度,canonical,case_insensitive,航空·性能与机场运行
+takeoff distance,起飞距离,滑跑及跃升至安全高度距离,canonical,case_insensitive,航空·性能与机场运行
+landing distance,着陆距离,接地至停稳滑跑距离,canonical,case_insensitive,航空·性能与机场运行
+runway,跑道,起降硬化道面,canonical,case_insensitive,航空·性能与机场运行
