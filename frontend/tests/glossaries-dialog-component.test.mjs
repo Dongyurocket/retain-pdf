@@ -45,6 +45,7 @@ const React = await import("react");
 const { createHomeComposition } = await import("../src/pages/home/composition.js");
 const { HomeApp } = await import("../src/pages/home/HomeApp.jsx");
 const { APP_EVENTS } = await import("../src/js/contracts/app-contract.js");
+const { createGlossaryTemplateBlob } = await import("../src/pages/home/features/glossaries/GlossaryImportPanel.tsx");
 
 function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -360,6 +361,16 @@ test("GlossariesDialog：CSV 导出调用 exportGlossaryCsv 并提示成功", as
   services.dispose();
   host.remove();
   globalThis.URL = previousURL;
+});
+
+test("术语表 CSV 模板使用 UTF-8 BOM，TXT 模板保持纯文本", async () => {
+  const csvBlob = createGlossaryTemplateBlob("glossary-template.csv", "source,target\n原词,译文\n");
+  const txtBlob = createGlossaryTemplateBlob("glossary-template.txt", "原词\t译文\n");
+
+  assert.equal(csvBlob.type, "text/csv;charset=utf-8");
+  assert.equal(txtBlob.type, "text/plain;charset=utf-8");
+  assert.deepEqual([...new Uint8Array(await csvBlob.arrayBuffer())].slice(0, 3), [0xef, 0xbb, 0xbf]);
+  assert.notDeepEqual([...new Uint8Array(await txtBlob.arrayBuffer())].slice(0, 3), [0xef, 0xbb, 0xbf]);
 });
 
 test("GlossariesDialog：APP_EVENTS.refreshGlossaries 触发列表重新加载", async () => {

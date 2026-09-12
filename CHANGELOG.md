@@ -5,6 +5,22 @@
 
 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [SemVer](https://semver.org/lang/zh-CN/)。
 
+## [v4.3.5] - 2026-09-12
+
+### 新增与修复
+
+- **桌面端 MCP 桥接**：新增可纳入 Git 的 stdio MCP 桥，直连本机 RetainPDF 桌面端 Rust API，支持 PDF 上传、OCR/翻译任务、任务事件、产物下载、文档库、术语表、OCR Provider 查询和阅读问答。
+- **术语表 CSV 中文兼容**：CSV 模板下载增加 UTF-8 BOM 和正确的 `text/csv` MIME 类型，修复 Excel 打开后中文乱码；TXT 模板行为保持不变。
+- **项目文档同步**：补充桌面端 MCP 的连接地址、认证方式和本地部署说明。
+
+### 安装包
+
+- Windows：由 GitHub Actions 构建 `RetainPDF-Windows-4.3.5-Setup.exe`
+- macOS：由 GitHub Actions 构建 `RetainPDF-Mac-4.3.5.dmg`
+- Linux：由 GitHub Actions 构建 `RetainPDF-Linux-4.3.5.deb`
+
+[v4.3.5]: https://github.com/Dongyurocket/retain-pdf/releases/tag/v4.3.5
+
 ## [v4.3.4] - 2026-09-09
 
 ### 新增与优化

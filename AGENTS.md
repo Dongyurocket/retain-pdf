@@ -12,7 +12,7 @@ PDF 保留排版翻译全栈项目：扫描/图片型 PDF、行内公式渲染�
 - `frontend/`：当前生产前端，三页 React SPA（index/reader/detail，`src/pages/`，esbuild 打包，Tailwind 4）；`frontend-react/` 是另一条独立技术栈（Vite+TS）迁移区，不替代 `frontend/`。
 - `desktop/`：Electron 桌面端打包与运行壳。
 - `docker/`：Dockerfile 与交付 compose（`docker/delivery/`）。
-- `mcp/`：stdio MCP 桥（`retainpdf_mcp.py`，Python 3.14），向本地 RetainPDF Docker 部署暴露 14 个工具（健康检查、上传/建任务、轮询/事件、产物下载、Markdown 读取、取消、图书馆、阅读问答），凭据在 `secrets/retainpdf-mcp.json`（不提交）。
+- `mcp/`：stdio MCP 桥（`retainpdf_mcp.py`，Python 3.14），直连本机 RetainPDF 桌面端的 Rust API（`127.0.0.1:41000`），暴露 19 个工具：健康检查、上传/建任务、轮询/事件、产物下载、Markdown 读取、取消、OCR Provider、文档库、术语表、图书馆与阅读问答；凭据在 `secrets/retainpdf-mcp.json`（不提交）。
 - `doc/`：文档库，入口 `doc/README.md`（api / core 主线 / reference / ops 四大类）。
 - `experiments/`：独立实验与 POC；`data/`：本地运行输出与样本（不入库）。
 
@@ -24,15 +24,15 @@ PDF 保留排版翻译全栈项目：扫描/图片型 PDF、行内公式渲染�
 - 架构门禁（新增跨层依赖前必跑）：
   - `python3 backend/scripts/devtools/check_pipeline_architecture.py`
   - `python3 backend/scripts/devtools/check_stage_specs_contract.py data/jobs`
-- 默认端口：Web 前端 40001、Rust API 41000、multipart 提交 42000（本地 Docker override 部署为 44001/44002/44003，见 `mcp/README.md`）。
+- 默认端口：Web 前端 40001、Rust API 41000、multipart 提交 42000；当前 MCP 直连桌面端 `41000`，Docker 部署端口仅在用户明确重新部署时适用。
 - 前端验证基线（2026-09-09，v4.3.3 / sync-upstream）：`npm test` 共 743 项，743 全部通过、0 失败（存量 5 项架构边界与字面色值棘轮门禁已全部修复清零）；`npm run typecheck` 已清零（0 错误）。Rust API Windows 本机 `cargo test` 315/315 全部通过（新增 3 项未翻译块警告断言）。Python 全量（Python 3.11.9）：1058 通过、20 个存量环境失败（新增的 14 项韧性重试与续接单测 100% 通过）。CI 注意：desktop-frontend-sync 会校验 `frontend/styles.css` 与源码同步——前端样式类名变更后必须本地 `npm run build` 并提交重新生成的 styles.css。
 
-## 本机部署事实（已验证）
+## 本机桌面端与 MCP（已验证）
 
-- 本机 `41000/42000` 被 RetainPDF 桌面端 `rust_api.exe` 常驻占用；Docker 实例固定用 `44001`（Web）/ `44002`（Rust API）/ `44003`（simple API），且只绑定 `127.0.0.1`，不暴露局域网。
-- MCP 桥通过 `http://127.0.0.1:44001` 的 Web 同源代理访问业务 API；Docker Desktop/WSL 下宿主直连 `44002` 鉴权异常，不要改回直连。
-- 本机密钥（均不提交）：`secrets/retainpdf-mcp.json`、`secrets/retainpdf-web.env`、`secrets/retainpdf-app.env`、`secrets/auth.local.json`。
-- 起停：`docker compose -f docker/delivery/docker-compose.yml -f docker/delivery/docker-compose.override.yml up -d`（override 文件被 gitignore）。
+- 本机 RetainPDF 桌面端的 `rust_api.exe` 常驻监听 `127.0.0.1:41000`（完整 API）和 `127.0.0.1:42000`（multipart API），仅绑定本机回环地址。
+- `retain-pdf` MCP 直接以 `X-API-Key: retain-pdf-desktop` 访问桌面端 `41000`，与桌面 UI 共用任务、文档库、术语表和产物数据。
+- 原 Docker 实例（Web `44001` / Rust API `44002` / multipart `44003`）及其 `retainpdf_app_data` 持久化卷已于 2026-09-12 删除；不要将 MCP 改回该地址，除非用户明确重新部署 Docker 服务。
+- MCP 配置与 provider 凭据均不提交：`secrets/retainpdf-mcp.json`。
 
 ## 发布与更新检测（个人 Fork 模式，2026-08-25 验证）
 

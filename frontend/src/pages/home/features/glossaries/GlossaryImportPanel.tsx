@@ -6,8 +6,15 @@ const CSV_TEMPLATE = `source,target,note,level,match_mode,context\nab initio,从
 
 const TXT_TEMPLATE = `原词\t译文\t备注\tab initio\t从头算\t量子化学\nHartree-Fock\tHartree-Fock\t保留英文\nKohn-Sham\tKohn-Sham\t量子化学\n`;
 
+export function createGlossaryTemplateBlob(filename, text) {
+  const isCsv = filename.toLowerCase().endsWith(".csv");
+  const blobParts = isCsv ? ["\uFEFF", text] : [text];
+  const mimeType = isCsv ? "text/csv;charset=utf-8" : "text/plain;charset=utf-8";
+  return new Blob(blobParts, { type: mimeType });
+}
+
 function downloadTextFile(filename, text) {
-  const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+  const blob = createGlossaryTemplateBlob(filename, text);
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
