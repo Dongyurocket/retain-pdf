@@ -1,6 +1,7 @@
 # RetainPDF：PDF 保留排版翻译工具
 
-> 本仓库是 [wxyhgk/retain-pdf](https://github.com/wxyhgk/retain-pdf) 的个人 Fork：发布包与桌面端更新检测由本仓库维护，详细更新记录见 [CHANGELOG.md](CHANGELOG.md)。
+> **说明**：本项目基于原开源项目 [wxyhgk/retain-pdf](https://github.com/wxyhgk/retain-pdf) 进行二次开发。如需查看原项目或上游主线，请前往原项目仓库：[https://github.com/wxyhgk/retain-pdf](https://github.com/wxyhgk/retain-pdf)。
+> 本仓库主要维护桌面端增强特性、更新检测与发布包，详细改动与更新记录见 [CHANGELOG.md](CHANGELOG.md)。
 
 <p align="center">
   <img src="resources/brand/RetainPDF-github.svg" alt="RetainPDF" width="320" />
@@ -214,15 +215,11 @@ docker compose up -d
 
 ---
 
-## 交流群
+## 致谢与原项目
 
-如果在使用、部署或二次开发 RetainPDF 时遇到问题，欢迎加入交流群：
+本项目基于原开源项目 [wxyhgk/retain-pdf](https://github.com/wxyhgk/retain-pdf) 开发，感谢原作者 [wxyhgk](https://github.com/wxyhgk) 及开源社区贡献者的优秀工作。如想查看或了解原项目，请访问：
 
-- QQ 群号：`1101779791`
-
-<p align="center">
-  <img src="resources/brand/QQ_Group.JPG" alt="RetainPDF QQ 交流群二维码" width="280" />
-</p>
+- **原项目仓库**：[https://github.com/wxyhgk/retain-pdf](https://github.com/wxyhgk/retain-pdf)
 
 ---
 
