@@ -8,6 +8,10 @@
 </p>
 
 <p align="center">
+  <strong>在保留版面、公式与结构的前提下进行 PDF 翻译，适用于科研与技术文档</strong>
+</p>
+
+<p align="center">
   <a href="https://github.com/Dongyurocket/retain-pdf/releases/latest"><img src="https://img.shields.io/github/v/release/Dongyurocket/retain-pdf?color=blue&label=Latest%20Release" alt="Latest Release" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License" /></a>
 </p>
