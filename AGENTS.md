@@ -27,7 +27,7 @@ PDF 保留排版翻译全栈项目：扫描/图片型 PDF、行内公式渲染�
   - `python3 backend/scripts/devtools/check_stage_specs_contract.py data/jobs`
 - 桌面端端口动态化（v4.3.8 起）：主 API（首选 41000，回退 41200-41203）、multipart 提交（42000 → 41001-41004）、AI 服务（41100 → 41300-41302）均按候选顺序做真实 bind 探测取第一个可绑定端口；显式固定用 `RETAINPDF_DESKTOP_API_PORT` / `RETAINPDF_DESKTOP_SIMPLE_PORT` / `RETAINPDF_DESKTOP_AI_PORT`（设置后只试该端口）。实际端口写入 userData 的 `runtime-ports.json`（Windows 为 `%APPDATA%/retain-pdf-desktop/`，Electron userData 取 package.json 的 name 而非 productName），前端 apiBase 由主进程运行时注入。Web 前端开发仍默认 40001；Docker 部署端口仅在用户明确重新部署时适用。
 - Windows 端口保留坑（2026-09-15 实测）：Hyper-V/WSL2/Docker Desktop 的 HNS 开机时成块保留动态端口（本机当时为 41890-45985），这些端口 netstat/Get-NetTCPConnection 查不到占用但 bind 会报 10048，且不一定出现在 `netsh int ipv4 show excludedportrange` 里；判断端口可用必须真实 bind 试探，connect 探测会系统性误判为空闲。
-- 验证基线（2026-09-15，v4.3.8 / main）：前端 `npm test` 744/744 全部通过、0 失败；`npm run typecheck` 0 错误。Rust API Windows 本机 `cargo test` 315/315 全部通过。桌面端主进程 `npm test` 27/27 通过（port-availability 9 项 + port-plan 8 项 + runtime-ports 6 项）。CI 注意：desktop-frontend-sync 会校验 `frontend/styles.css` 与源码同步——前端样式类名变更后必须本地 `npm run build` 并提交重新生成的 styles.css。
+- 验证基线（2026-09-15，v4.3.9 / main）：前端 `npm test` 744/744 全部通过、0 失败；`npm run typecheck` 0 错误。Rust API Windows 本机 `cargo test` 316/316 全部通过。桌面端主进程 `npm test` 27/27 通过（port-availability 9 项 + port-plan 8 项 + runtime-ports 6 项）。CI 注意：desktop-frontend-sync 会校验 `frontend/styles.css` 与源码同步——前端样式类名变更后必须本地 `npm run build` 并提交重新生成的 styles.css。
 
 ## 本机桌面端与 MCP（已验证）
 
