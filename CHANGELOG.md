@@ -5,6 +5,30 @@
 
 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [SemVer](https://semver.org/lang/zh-CN/)。
 
+## [v4.3.9] - 2026-09-15
+
+### 修复与增强
+
+- **DeepSeek 默认模型名修正（修复全新安装默认配置即翻译 400）**：
+  - DeepSeek 平台当前可用的模型名为 `deepseek-flash` / `deepseek-v4-pro`，而应用内置默认值 `deepseek-v4-flash` 不在其中——使用默认配置的任务会在翻译阶段首个 LLM 调用被上游 400 拒绝（`invalid_request_error`），整个任务失败；
+  - 默认值统一改为 `deepseek-flash`：前端 `model-constants.ts`、桌面端 `desktop-config.js`、MCP 桥、翻译流水线 DeepSeek client、`retainpdf-ai` 服务与开发调试脚本；
+  - MCP 阅读问答不再硬编码 `deepseek-chat`，改为跟随 `deepseek_model` 配置。
+- **失败分类器修复（结构化失败不再静默退化为“未识别”）**：
+  - 修复前：worker 过渡期双写 `stage`/`failed_stage`、`error_type`/`failure_code` 两套键名，而 Rust 侧 `PythonStructuredFailure` 的 `#[serde(alias)]` 对同一字段的重复键报 `duplicate field`，导致整条结构化失败 JSON 解析失败——分类静默退化为通用的 `process_exit_failed`（“未匹配到更具体的失败分类”），并把明确不可重试的上游 400 错误显示为「可重试：是」；
+  - 修复后：提取时先规整重复别名键（新键优先）再解析，失败对话框正确展示 worker 上报的分类（如 `upstream_bad_request`）、建议与 `retryable=false`；
+  - 新增双键负载回归测试（按真实 deepseek 400 案例构造），Rust API 测试 316/316 通过。
+- **MCP 端口自动发现路径修正**：
+  - v4.3.8 引入的端口发现误用 `%APPDATA%/RetainPDF` 作为 userData 目录，实际为 `%APPDATA%/retain-pdf-desktop`（Electron userData 取 package.json 的 `name` 而非 `productName`），导致发现功能静默失效、只能回退默认口；
+  - 现 Windows / macOS / Linux 三平台均同时探测 `retain-pdf-desktop` 与 `RetainPDF` 两个目录名，兼容开发、打包与历史安装；相关文档路径一并更正。
+
+### 安装包
+
+- Windows：由 GitHub Actions 构建 `RetainPDF-Windows-4.3.9-Setup.exe`
+- macOS：由 GitHub Actions 构建 `RetainPDF-Mac-4.3.9.dmg`
+- Linux：由 GitHub Actions 构建 `RetainPDF-Linux-4.3.9.deb`
+
+[v4.3.9]: https://github.com/Dongyurocket/retain-pdf/releases/tag/v4.3.9
+
 ## [v4.3.8] - 2026-09-15
 
 ### 修复与增强

@@ -23,7 +23,7 @@ class Settings:
     rust_api_key: str = ""
     # LLM(DeepSeek 或兼容端点)
     llm_base_url: str = "https://api.deepseek.com/v1"
-    llm_model: str = "deepseek-v4-flash"
+    llm_model: str = "deepseek-flash"
     llm_api_key: str = ""
     llm_timeout_s: float = 60.0
     # agent 循环护栏
@@ -50,7 +50,7 @@ def load_settings() -> Settings:
         rust_api_base=os.environ.get("RETAIN_AI_RUST_API_BASE", "http://127.0.0.1:41000").rstrip("/"),
         rust_api_key=os.environ.get("RETAIN_AI_RUST_API_KEY", "").strip(),
         llm_base_url=os.environ.get("RETAIN_AI_LLM_BASE_URL", "https://api.deepseek.com/v1").rstrip("/"),
-        llm_model=os.environ.get("RETAIN_AI_LLM_MODEL", "deepseek-v4-flash"),
+        llm_model=os.environ.get("RETAIN_AI_LLM_MODEL", "deepseek-flash"),
         llm_api_key=os.environ.get("RETAIN_AI_LLM_API_KEY", "").strip(),
         llm_timeout_s=float(os.environ.get("RETAIN_AI_LLM_TIMEOUT_S", "60")),
         max_tool_rounds=int(os.environ.get("RETAIN_AI_MAX_TOOL_ROUNDS", "6")),

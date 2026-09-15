@@ -153,6 +153,24 @@ pub(super) fn classify_provider_auth_failure(
     ))
 }
 
+fn parse_structured_failure(raw_json: &str) -> Option<PythonStructuredFailure> {
+    // 快路径：负载只含新键或只含旧键时直接解析。
+    if let Ok(parsed) = serde_json::from_str::<PythonStructuredFailure>(raw_json) {
+        return Some(parsed);
+    }
+    // 兼容路径：worker 过渡期为兼容会双写 stage/failed_stage、error_type/failure_code。
+    // serde 的 alias 对同一字段的重复键报 duplicate field，导致整个结构化失败被丢弃、
+    // 分类静默退化为 process_exit_failed。先规整为 Value 去掉旧别名键（新键优先）再解析。
+    let mut value = serde_json::from_str::<serde_json::Value>(raw_json).ok()?;
+    let object = value.as_object_mut()?;
+    for (alias, canonical) in [("stage", "failed_stage"), ("error_type", "failure_code")] {
+        if object.contains_key(alias) && object.contains_key(canonical) {
+            object.remove(alias);
+        }
+    }
+    serde_json::from_value::<PythonStructuredFailure>(value).ok()
+}
+
 pub(super) fn extract_structured_failure(
     label: &str,
     haystack: &str,
@@ -169,7 +187,7 @@ pub(super) fn extract_structured_failure(
         if raw_json.is_empty() {
             continue;
         }
-        if let Ok(parsed) = serde_json::from_str::<PythonStructuredFailure>(raw_json) {
+        if let Some(parsed) = parse_structured_failure(raw_json) {
             return Some(parsed);
         }
     }

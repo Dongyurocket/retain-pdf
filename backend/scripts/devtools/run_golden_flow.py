@@ -44,7 +44,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--provider", type=str, default="paddle", choices=["paddle", "mineru"])
     parser.add_argument("--provider-credential-ref", type=str, default="env:RETAIN_PADDLE_API_TOKEN")
     parser.add_argument("--translation-credential-ref", type=str, default="env:RETAIN_TRANSLATION_API_KEY")
-    parser.add_argument("--model", type=str, default="deepseek-v4-flash")
+    parser.add_argument("--model", type=str, default="deepseek-flash")
     parser.add_argument("--base-url", type=str, default="https://api.deepseek.com/v1")
     parser.add_argument("--workers", type=int, default=6)
     parser.add_argument("--compile-workers", type=int, default=4)

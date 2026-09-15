@@ -26,6 +26,11 @@ LOG = logging.getLogger("retainpdf-mcp")
 DEFAULT_API_BASE = "http://127.0.0.1:41000"
 
 
+# Electron 的 userData 目录取 package.json 的 name（retain-pdf-desktop），
+# 而 productName 是 RetainPDF；两种命名都探测，兼容开发/打包与历史安装。
+_USERDATA_DIR_NAMES = ("retain-pdf-desktop", "RetainPDF")
+
+
 def _runtime_ports_files() -> list[Path]:
     """Candidate locations of the desktop runtime-ports.json port file."""
     paths: list[Path] = []
@@ -35,13 +40,16 @@ def _runtime_ports_files() -> list[Path]:
     if sys.platform == "win32":
         appdata = os.environ.get("APPDATA", "").strip()
         if appdata:
-            paths.append(Path(appdata) / "RetainPDF" / "runtime-ports.json")
+            for name in _USERDATA_DIR_NAMES:
+                paths.append(Path(appdata) / name / "runtime-ports.json")
     elif sys.platform == "darwin":
-        paths.append(Path.home() / "Library" / "Application Support" / "RetainPDF" / "runtime-ports.json")
+        for name in _USERDATA_DIR_NAMES:
+            paths.append(Path.home() / "Library" / "Application Support" / name / "runtime-ports.json")
     else:
         config_home = os.environ.get("XDG_CONFIG_HOME", "").strip()
         base = Path(config_home) if config_home else Path.home() / ".config"
-        paths.append(base / "RetainPDF" / "runtime-ports.json")
+        for name in _USERDATA_DIR_NAMES:
+            paths.append(base / name / "runtime-ports.json")
     return paths
 
 
@@ -132,7 +140,7 @@ def _load_settings() -> Settings:
         api_key=api_key,
         paddle_token=value("paddle_token", "PADDLE_API_KEY"),
         deepseek_api_key=value("deepseek_api_key", "DEEPSEEK_API_KEY"),
-        deepseek_model=value("deepseek_model", "RETAINPDF_AI_MODEL", "deepseek-v4-flash"),
+        deepseek_model=value("deepseek_model", "RETAINPDF_AI_MODEL", "deepseek-flash"),
         deepseek_base_url=value("deepseek_base_url", "RETAINPDF_AI_BASE_URL", "https://api.deepseek.com/v1").rstrip("/"),
         download_dir=download_dir,
         timeout_seconds=float(raw.get("timeout_seconds", os.environ.get("RETAINPDF_MCP_TIMEOUT", 120))),
@@ -519,7 +527,7 @@ async def retainpdf_reader_chat(job_id: str, message: str, page: int | None = No
         "message": message,
         "scope": "document",
         "provider": "deepseek",
-        "model": "deepseek-chat",
+        "model": settings.deepseek_model,
         "api_key": settings.deepseek_api_key,
         "base_url": settings.deepseek_base_url,
         "context": context,

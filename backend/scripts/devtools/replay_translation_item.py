@@ -296,7 +296,7 @@ def replay_translation_case_artifact(case_artifact_path: Path, item_id: str | No
             custom_rules_text=str(spec.get("custom_rules_text") or ""),
             classify_batch_size=int(spec.get("classify_batch_size") or 12),
             workers=int(spec.get("workers") or 1),
-            model=str(spec.get("model") or "deepseek-v4-flash"),
+            model=str(spec.get("model") or "deepseek-flash"),
             base_url=str(spec.get("base_url") or "https://api.deepseek.com/v1"),
             glossary_entries=list(spec.get("glossary_entries") or []),
             credential_ref=str(spec.get("credential_ref") or ""),

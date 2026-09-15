@@ -511,6 +511,54 @@ mod tests {
     }
 
     #[test]
+    fn classify_job_failure_accepts_dual_key_structured_failure_protocol() {
+        // 真实 worker 负载：stage/failed_stage、error_type/failure_code 双写。
+        // serde 的 alias 对同字段重复键报 duplicate field，曾导致结构化失败静默
+        // 退化为 process_exit_failed（2026-09-15 deepseek 模型名 400 案例）。
+        let mut job = crate::models::JobSnapshot::new(
+            "job-dual-key-structured".to_string(),
+            CreateJobInput::default(),
+            vec!["python".to_string()],
+        );
+        job.status = crate::models::JobStatusKind::Failed;
+        job.stage = Some("failed".to_string());
+        job.error = Some(
+            "Traceback (most recent call last):\nrequests.exceptions.HTTPError: 400 Client Error: Bad Request for url: https://api.deepseek.com/v1/chat/completions\nstructured failure json: {\"failed_stage\":\"translation\",\"failure_code\":\"upstream_bad_request\",\"failure_category\":\"input\",\"provider_stage\":\"\",\"provider_code\":\"\",\"suggestion\":\"检查请求参数、输入文件和上游接口约束，修正后再重试。\",\"raw_excerpt\":\"HTTPError: 400 Client Error\",\"stage\":\"translation\",\"error_type\":\"upstream_bad_request\",\"summary\":\"上游服务拒绝请求（400）\",\"detail\":\"The supported API model names are deepseek-flash, deepseek-v4-pro, but you passed deepseek-v4.1-flash.\",\"retryable\":false,\"upstream_host\":\"api.deepseek.com\",\"provider\":\"translation\",\"raw_exception_type\":\"HTTPError\",\"raw_exception_message\":\"HTTPError: 400 Client Error\",\"traceback\":\"Traceback (most recent call last):\"}\n"
+                .to_string(),
+        );
+        job.result = Some(crate::models::ProcessResult {
+            success: false,
+            return_code: 1,
+            duration_seconds: 1.0,
+            command: vec!["python".to_string()],
+            cwd: "/tmp".to_string(),
+            stdout: "".to_string(),
+            stderr: "HTTPError: 400 Client Error".to_string(),
+        });
+
+        let failure = classify_job_failure(&job).expect("failure");
+        assert_eq!(failure.category, "upstream_bad_request");
+        assert_eq!(failure.stage, "translation");
+        assert!(!failure.retryable);
+        assert_eq!(failure.summary, "上游服务拒绝请求（400）");
+        assert_eq!(failure.failed_stage.as_deref(), Some("translation"));
+        assert_eq!(failure.failure_code.as_deref(), Some("upstream_bad_request"));
+        assert_eq!(failure.failure_category.as_deref(), Some("input"));
+        assert_eq!(failure.upstream_host.as_deref(), Some("api.deepseek.com"));
+        assert_eq!(
+            failure.suggestion.as_deref(),
+            Some("检查请求参数、输入文件和上游接口约束，修正后再重试。")
+        );
+        assert_eq!(
+            failure
+                .raw_diagnostic
+                .as_ref()
+                .and_then(|item| item.structured_error_type.as_deref()),
+            Some("upstream_bad_request")
+        );
+    }
+
+    #[test]
     fn classify_job_failure_maps_unknown_process_exit() {
         let mut job = crate::models::JobSnapshot::new(
             "job-process-exit".to_string(),
