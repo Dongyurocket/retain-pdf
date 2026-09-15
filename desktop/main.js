@@ -14,6 +14,11 @@ const { createDesktopConfigStore } = require("./src/main/desktop-config");
 const { createDesktopLogger } = require("./src/main/desktop-logging");
 const { createDesktopWindows } = require("./src/main/desktop-windows");
 const { createPortOccupant } = require("./src/main/port-occupant");
+const {
+  describeProbe,
+  findBindablePort,
+  probePort,
+} = require("./src/main/port-availability");
 const { stopStaleBackendOnPort } = require("./src/main/stale-backend-cleanup");
 
 const desktopLogger = createDesktopLogger(app);
@@ -58,6 +63,19 @@ let splashWindow = null;
 let usingExternalBackend = false;
 let isQuitting = false;
 const AI_SERVICE_PORT = 41100;
+// multipart 提交口没有任何前端/MCP 硬编码依赖（前端只认 41000），
+// 所以在被系统保留时可以自动换端口；41000 是 apiBase，不能挪。
+const DEFAULT_SIMPLE_PORT = 42000;
+const SIMPLE_PORT_FALLBACKS = [41001, 41002, 41003, 41004];
+
+// 允许用户显式指定 multipart 端口，绕开系统保留段。
+function resolveSimplePortCandidates() {
+  const override = Number.parseInt(process.env.RETAINPDF_DESKTOP_SIMPLE_PORT || "", 10);
+  if (Number.isInteger(override) && override > 0 && override < 65536) {
+    return [override];
+  }
+  return [DEFAULT_SIMPLE_PORT, ...SIMPLE_PORT_FALLBACKS];
+}
 
 function updateSplashProgress(progress, title, detail) {
   if (!splashWindow || splashWindow.isDestroyed()) {
@@ -160,7 +178,8 @@ async function startBundledBackend() {
   const typstPackagePath = path.join(backendRoot, "typst-packages");
   const typstPackageCachePath = path.join(dataRoot, "typst-package-cache");
   const apiPort = 41000;
-  const simplePort = 42000;
+  // 实际值在下面的端口探测里确定；复用外部后端的分支不自己启 rust_api，沿用默认值即可。
+  let simplePort = DEFAULT_SIMPLE_PORT;
   const aiServicePort = AI_SERVICE_PORT;
   // packaged: backend/ai_service；开发未 prepare 时可回退仓库 backend/ai_service
   let aiServiceRoot = path.join(backendRoot, "ai_service");
@@ -214,8 +233,22 @@ async function startBundledBackend() {
   fs.mkdirSync(typstPackageCachePath, { recursive: true });
   updateSplashProgress(34, "正在准备工作目录", "正在初始化本地数据目录");
 
-  const apiPortBusy = await canConnectToPort("127.0.0.1", apiPort);
-  logDesktop(`[desktop] port ${apiPort} busy=${apiPortBusy}`);
+  // 真实 bind 试探：仅 connect 探测对"系统保留但无人监听"的端口会系统性误判为空闲，
+  // 导致 rust_api 随后绑定失败退出，而错误却表现为"backend did not become ready"。
+  const apiProbe = await probePort("127.0.0.1", apiPort, { canConnectToPort });
+  logDesktop(
+    `[desktop] port ${apiPort} state=${apiProbe.state}${apiProbe.code ? ` code=${apiProbe.code}` : ""}`,
+  );
+  if (apiProbe.state === "reserved") {
+    // 41000 是前端 apiBase，不能自动换端口，只能把原因说清楚。
+    throw new Error(
+      [
+        `端口 ${apiPort} 无法绑定，而它是桌面端主 API 端口，不可更换。`,
+        describeProbe(apiPort, apiProbe),
+      ].filter(Boolean).join("\n"),
+    );
+  }
+  const apiPortBusy = apiProbe.state === "listening";
   if (apiPortBusy) {
     const allowExternalBackend = process.env.RETAINPDF_DESKTOP_ALLOW_EXTERNAL_BACKEND === "1";
     if (app.isPackaged && !allowExternalBackend) {
@@ -287,10 +320,30 @@ async function startBundledBackend() {
     }
   }
 
-  const simplePortBusy = await canConnectToPort("127.0.0.1", simplePort);
-  logDesktop(`[desktop] port ${simplePort} busy=${simplePortBusy}`);
-  if (simplePortBusy) {
-    throw new Error(`端口 ${simplePort} 已被其他进程占用，请先释放后再启动桌面端。`);
+  // multipart 提交口没有硬编码消费者，被占用或被系统保留时自动换到相邻端口，
+  // 而不是直接让整个桌面端起不来。显式指定 RETAINPDF_DESKTOP_SIMPLE_PORT 时只试该端口。
+  const simpleCandidates = resolveSimplePortCandidates();
+  const simpleResult = await findBindablePort("127.0.0.1", simpleCandidates, { canConnectToPort });
+  for (const attempt of simpleResult.attempts) {
+    logDesktop(
+      `[desktop] port ${attempt.port} state=${attempt.state}${attempt.code ? ` code=${attempt.code}` : ""}`,
+    );
+  }
+  if (simpleResult.port === null) {
+    const lastAttempt = simpleResult.attempts[simpleResult.attempts.length - 1];
+    throw new Error(
+      [
+        `multipart 提交端口全部不可用（已尝试 ${simpleCandidates.join("、")}）。`,
+        describeProbe(lastAttempt?.port, lastAttempt),
+        "可设置环境变量 RETAINPDF_DESKTOP_SIMPLE_PORT 指定一个可用端口后重试。",
+      ].filter(Boolean).join("\n"),
+    );
+  }
+  simplePort = simpleResult.port;
+  if (simplePort !== DEFAULT_SIMPLE_PORT) {
+    logDesktop(
+      `[desktop] multipart api port fell back to ${simplePort} (default ${DEFAULT_SIMPLE_PORT} unavailable)`,
+    );
   }
 
   const bundledPythonHome = resolveBundledPythonHome(pythonRuntime.bundledHome);

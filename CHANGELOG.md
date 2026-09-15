@@ -5,6 +5,31 @@
 
 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [SemVer](https://semver.org/lang/zh-CN/)。
 
+## [v4.3.7] - 2026-09-15
+
+### 修复与增强
+
+- **桌面端端口预检改为真实 bind 试探（修复启动失败误报）**：
+  - 修复了 Windows 上 Hyper-V / WSL2 / Docker Desktop 的 HNS 成块保留动态端口时，桌面端启动失败且错误信息完全指错方向的缺陷。这类被保留的端口没有任何监听进程，`netstat` 与 `Get-NetTCPConnection` 均查不到占用，原先仅做 connect 探测的预检会一律误判为「空闲」，随后 `rust_api` 绑定 42000 失败退出，而桌面端仍在等 41000 就绪，最终只弹出 `backend did not become ready on 127.0.0.1:41000`，与真正的故障端口无关；
+  - 新增 `desktop/src/main/port-availability.js`，以真实 bind 试探替代 connect 探测，将端口区分为 `free`（可绑定）/ `listening`（有进程监听）/ `reserved`（无人监听但绑不上）三态，`reserved` 场景直接在启动错误中说明 Windows 端口保留成因与排查命令。
+- **multipart 提交端口自动回退与可配置**：
+  - multipart 异步提交端口（默认 `42000`）在被占用或被系统保留时，按 `42000 → 41001 → 41002 → 41003 → 41004` 自动选取第一个可绑定端口，不再让整个桌面端无法启动；该端口没有前端或 MCP 硬编码依赖，主 API 端口 `41000` 仍固定不变；
+  - 新增环境变量 `RETAINPDF_DESKTOP_SIMPLE_PORT` 用于显式指定该端口；显式指定时不再静默回退，而是如实报错。
+- **Rust API 绑定失败错误定位**：
+  - `rust_api` 两个监听端口的绑定失败信息现在带上具体端口与角色（full api / simple api），并提示 Windows 端口保留的排查命令与 `RUST_API_PORT` / `RUST_API_SIMPLE_PORT` 覆盖方式，替代原先仅有 `os error 10048` 的无定位报错；
+  - `listening on` 日志移至绑定成功之后，不再出现「已打印监听地址实际却未绑定」的误导性日志。
+- **测试与工程化**：
+  - 新增 `desktop/src/main/port-availability.test.mjs`（9 项），覆盖 bind 试探、三态判定、候选端口回退与保留端口文案，其中包含「connect 说空闲但 bind 失败」的核心回归用例；
+  - 为 `desktop` 补上此前缺失的 `npm test` 入口（`node --test "src/main/*.test.mjs"`），桌面端主进程测试 13/13 通过。
+
+### 安装包
+
+- Windows：由 GitHub Actions 构建 `RetainPDF-Windows-4.3.7-Setup.exe`
+- macOS：由 GitHub Actions 构建 `RetainPDF-Mac-4.3.7.dmg`
+- Linux：由 GitHub Actions 构建 `RetainPDF-Linux-4.3.7.deb`
+
+[v4.3.7]: https://github.com/Dongyurocket/retain-pdf/releases/tag/v4.3.7
+
 ## [v4.3.6] - 2026-09-12
 
 ### 修复与增强

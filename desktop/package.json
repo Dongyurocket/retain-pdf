@@ -1,6 +1,6 @@
 {
   "name": "retain-pdf-desktop",
-  "version": "4.3.6",
+  "version": "4.3.7",
   "private": true,
   "description": "RetainPDF desktop wrapper",
   "homepage": "https://github.com/Dongyurocket/retain-pdf",
@@ -10,6 +10,7 @@
   },
   "main": "main.js",
   "scripts": {
+    "test": "node --test \"src/main/*.test.mjs\"",
     "sync:win-frontend": "node scripts/sync-win-frontend.mjs",
     "install-git-hooks": "sh scripts/install-git-hooks.sh",
     "smoke:frontend-bundle": "node scripts/check-frontend-bundle.mjs",

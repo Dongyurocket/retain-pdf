@@ -54,6 +54,7 @@ Docker 中 `docker/delivery/docker/auth.local.json` 的 `api_keys` 必须和 `do
 - `RUST_API_BIND_HOST`：监听地址，默认 `0.0.0.0`。
 - `RUST_API_PORT`：完整 API 端口，默认 `41000`。
 - `RUST_API_SIMPLE_PORT`：multipart 异步提交端口，默认 `42000`。
+- `RETAINPDF_DESKTOP_SIMPLE_PORT`：仅桌面端使用，显式指定 multipart 提交端口。不设置时桌面端按 `42000 → 41001 → 41002 → 41003 → 41004` 顺序取第一个可绑定端口，用于绕开 Windows 上 Hyper-V/WSL2/Docker 成块保留的动态端口段。
 - `RUST_API_DATA_ROOT`：运行时数据根目录。
 - `RUST_API_DATA_DIR`：旧别名，仅在 `RUST_API_DATA_ROOT` 未设置时使用。
 - `RUST_API_SCRIPTS_DIR`：Python 脚本目录。

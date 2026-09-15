@@ -2,7 +2,7 @@ use std::future::pending;
 use std::net::{IpAddr, SocketAddr};
 use std::sync::Arc;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use tokio::sync::oneshot;
 use tokio::task::JoinHandle;
 
@@ -26,6 +26,19 @@ impl RunningServers {
         }
         self.join_handle.await?
     }
+}
+
+async fn bind_listener(addr: SocketAddr, role: &str) -> Result<tokio::net::TcpListener> {
+    tokio::net::TcpListener::bind(addr)
+        .await
+        .with_context(|| {
+            format!(
+                "failed to bind {role} on {addr}: the port is unavailable. \
+                 On Windows it may be reserved by Hyper-V/WSL2/Docker even with no listener \
+                 (check `netsh int ipv4 show excludedportrange protocol=tcp`); \
+                 set RUST_API_PORT / RUST_API_SIMPLE_PORT to use a different port"
+            )
+        })
 }
 
 async fn serve_with_shutdown(
@@ -58,11 +71,14 @@ async fn serve_with_shutdown(
         config.api_keys.len(),
         config.max_running_jobs
     );
+
+    // 绑定失败时必须说清是哪个端口、哪个角色：两个监听口里任意一个绑不上都会让
+    // 进程整体退出，而桌面端只在等 full api 就绪，光看 os error 10048 无法定位。
+    // 日志放在 bind 之后，避免打印了 "listening on" 其实什么都没绑上。
+    let listener = bind_listener(addr, "full api").await?;
+    let simple_listener = bind_listener(simple_addr, "simple api").await?;
     tracing::info!("rust_api full api listening on {}", addr);
     tracing::info!("rust_api simple api listening on {}", simple_addr);
-
-    let listener = tokio::net::TcpListener::bind(addr).await?;
-    let simple_listener = tokio::net::TcpListener::bind(simple_addr).await?;
 
     let shutdown_signal = Arc::new(tokio::sync::Notify::new());
     let shutdown_waiter = shutdown_signal.clone();
