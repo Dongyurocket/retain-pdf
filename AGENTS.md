@@ -12,7 +12,7 @@ PDF 保留排版翻译全栈项目：扫描/图片型 PDF、行内公式渲染�
 - `frontend/`：当前生产前端，三页 React SPA（index/reader/detail，`src/pages/`，esbuild 打包，Tailwind 4）；`frontend-react/` 是另一条独立技术栈（Vite+TS）迁移区，不替代 `frontend/`。
 - `desktop/`：Electron 桌面端打包与运行壳。
 - `docker/`：Dockerfile 与交付 compose（`docker/delivery/`）。
-- `mcp/`：stdio MCP 桥（`retainpdf_mcp.py`，Python 3.14），直连本机 RetainPDF 桌面端的 Rust API（`127.0.0.1:41000`），暴露 19 个工具：健康检查、上传/建任务、轮询/事件、产物下载、Markdown 读取、取消、OCR Provider、文档库、术语表、图书馆与阅读问答；凭据在 `secrets/retainpdf-mcp.json`（不提交）。
+- `mcp/`：stdio MCP 桥（`retainpdf_mcp.py`，Python 3.14），直连本机 RetainPDF 桌面端的 Rust API（`api_base=auto` 时从 `%APPDATA%/RetainPDF/runtime-ports.json` 发现端口并 health 验证，回退 `127.0.0.1:41000`），暴露 19 个工具：健康检查、上传/建任务、轮询/事件、产物下载、Markdown 读取、取消、OCR Provider、文档库、术语表、图书馆与阅读问答；凭据在 `secrets/retainpdf-mcp.json`（不提交）。
 - `doc/`：文档库，入口 `doc/README.md`（api / core 主线 / reference / ops 四大类）。
 - `experiments/`：独立实验与 POC；`data/`：本地运行输出与样本（不入库）。
 
@@ -25,14 +25,14 @@ PDF 保留排版翻译全栈项目：扫描/图片型 PDF、行内公式渲染�
 - 架构门禁（新增跨层依赖前必跑）：
   - `python3 backend/scripts/devtools/check_pipeline_architecture.py`
   - `python3 backend/scripts/devtools/check_stage_specs_contract.py data/jobs`
-- 默认端口：Web 前端 40001、Rust API 41000、multipart 提交 42000（桌面端在 42000 不可绑定时自动回退到 41001-41004，可用 `RETAINPDF_DESKTOP_SIMPLE_PORT` 固定）；当前 MCP 直连桌面端 `41000`，Docker 部署端口仅在用户明确重新部署时适用。
+- 桌面端端口动态化（v4.3.8 起）：主 API（首选 41000，回退 41200-41203）、multipart 提交（42000 → 41001-41004）、AI 服务（41100 → 41300-41302）均按候选顺序做真实 bind 探测取第一个可绑定端口；显式固定用 `RETAINPDF_DESKTOP_API_PORT` / `RETAINPDF_DESKTOP_SIMPLE_PORT` / `RETAINPDF_DESKTOP_AI_PORT`（设置后只试该端口）。实际端口写入 `%APPDATA%/RetainPDF/runtime-ports.json`，前端 apiBase 由主进程运行时注入。Web 前端开发仍默认 40001；Docker 部署端口仅在用户明确重新部署时适用。
 - Windows 端口保留坑（2026-09-15 实测）：Hyper-V/WSL2/Docker Desktop 的 HNS 开机时成块保留动态端口（本机当时为 41890-45985），这些端口 netstat/Get-NetTCPConnection 查不到占用但 bind 会报 10048，且不一定出现在 `netsh int ipv4 show excludedportrange` 里；判断端口可用必须真实 bind 试探，connect 探测会系统性误判为空闲。
-- 验证基线（2026-09-15，v4.3.7 / main）：前端 `npm test` 744/744 全部通过、0 失败；`npm run typecheck` 0 错误。Rust API Windows 本机 `cargo test` 315/315 全部通过。桌面端主进程 `npm test` 13/13 通过（含 port-availability 9 项）。CI 注意：desktop-frontend-sync 会校验 `frontend/styles.css` 与源码同步——前端样式类名变更后必须本地 `npm run build` 并提交重新生成的 styles.css。
+- 验证基线（2026-09-15，v4.3.8 / main）：前端 `npm test` 744/744 全部通过、0 失败；`npm run typecheck` 0 错误。Rust API Windows 本机 `cargo test` 315/315 全部通过。桌面端主进程 `npm test` 27/27 通过（port-availability 9 项 + port-plan 8 项 + runtime-ports 6 项）。CI 注意：desktop-frontend-sync 会校验 `frontend/styles.css` 与源码同步——前端样式类名变更后必须本地 `npm run build` 并提交重新生成的 styles.css。
 
 ## 本机桌面端与 MCP（已验证）
 
-- 本机 RetainPDF 桌面端的 `rust_api.exe` 常驻监听 `127.0.0.1:41000`（完整 API）和 `127.0.0.1:42000`（multipart API），仅绑定本机回环地址。
-- `retain-pdf` MCP 直接以 `X-API-Key: retain-pdf-desktop` 访问桌面端 `41000`，与桌面 UI 共用任务、文档库、术语表和产物数据。
+- 本机 RetainPDF 桌面端默认监听 `127.0.0.1:41000`（完整 API）与动态解析的 multipart/AI 端口，仅绑定本机回环地址；任一默认口被系统保留或占用时按候选顺序回退，实际端口以 `%APPDATA%/RetainPDF/runtime-ports.json` 为准。
+- `retain-pdf` MCP 的 `api_base` 设为 `auto`：启动时读 runtime-ports.json 并做 `/health` 验证来发现真实端口，发现失败回退 `41000`（与旧固定配置行为一致）；显式配置 `api_base` 时仍优先使用。
 - 原 Docker 实例（Web `44001` / Rust API `44002` / multipart `44003`）及其 `retainpdf_app_data` 持久化卷已于 2026-09-12 删除；不要将 MCP 改回该地址，除非用户明确重新部署 Docker 服务。
 - MCP 配置与 provider 凭据均不提交：`secrets/retainpdf-mcp.json`。
 

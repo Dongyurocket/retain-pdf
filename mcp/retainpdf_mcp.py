@@ -23,6 +23,67 @@ from mcp.server.fastmcp import FastMCP
 
 LOG = logging.getLogger("retainpdf-mcp")
 
+DEFAULT_API_BASE = "http://127.0.0.1:41000"
+
+
+def _runtime_ports_files() -> list[Path]:
+    """Candidate locations of the desktop runtime-ports.json port file."""
+    paths: list[Path] = []
+    override = os.environ.get("RETAINPDF_RUNTIME_PORTS_FILE", "").strip()
+    if override:
+        paths.append(Path(override).expanduser())
+    if sys.platform == "win32":
+        appdata = os.environ.get("APPDATA", "").strip()
+        if appdata:
+            paths.append(Path(appdata) / "RetainPDF" / "runtime-ports.json")
+    elif sys.platform == "darwin":
+        paths.append(Path.home() / "Library" / "Application Support" / "RetainPDF" / "runtime-ports.json")
+    else:
+        config_home = os.environ.get("XDG_CONFIG_HOME", "").strip()
+        base = Path(config_home) if config_home else Path.home() / ".config"
+        paths.append(base / "RetainPDF" / "runtime-ports.json")
+    return paths
+
+
+def _discover_api_base(api_key: str) -> str:
+    """Resolve the desktop API base when ports are assigned dynamically.
+
+    The desktop bind-probes candidate ports and records the winner in
+    runtime-ports.json. The file is only a hint (it can go stale after a
+    crash), so every candidate is verified with /health before use; when
+    discovery fails we fall back to the historical default so the failure
+    mode stays identical to a fixed-configuration bridge.
+    """
+    candidates: list[str] = []
+    for path in _runtime_ports_files():
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        base = str(data.get("api_base") or "").strip().rstrip("/")
+        if base:
+            candidates.append(base)
+    candidates.append(DEFAULT_API_BASE)
+    seen: set[str] = set()
+    for base in candidates:
+        if base in seen:
+            continue
+        seen.add(base)
+        try:
+            with httpx.Client(
+                base_url=base,
+                headers={"X-API-Key": api_key},
+                timeout=2.0,
+                trust_env=False,
+            ) as client:
+                if client.get("/health").status_code == 200:
+                    LOG.info("RetainPDF MCP discovered API base %s", base)
+                    return base
+        except httpx.HTTPError:
+            continue
+    LOG.warning("RetainPDF MCP found no healthy API via discovery; using %s", DEFAULT_API_BASE)
+    return DEFAULT_API_BASE
+
 
 @dataclass(frozen=True)
 class Settings:
@@ -62,7 +123,9 @@ def _load_settings() -> Settings:
     api_key = value("api_key", "RETAINPDF_API_KEY")
     if not api_key:
         raise RuntimeError("RetainPDF MCP api_key is missing")
-    api_base = value("api_base", "RETAINPDF_API_BASE", "http://127.0.0.1:41000").rstrip("/")
+    api_base = value("api_base", "RETAINPDF_API_BASE").rstrip("/")
+    if not api_base or api_base.lower() == "auto":
+        api_base = _discover_api_base(api_key)
     download_dir = Path(value("download_dir", "RETAINPDF_MCP_DOWNLOAD_DIR", "./output/mcp-downloads"))
     return Settings(
         api_base=api_base,

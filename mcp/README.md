@@ -6,8 +6,12 @@ The server reads its connection and provider credentials from the ignored
 
 The MCP targets the locally installed desktop application's Rust API:
 
-- Rust API: http://127.0.0.1:41000
-- Simple multipart API: http://127.0.0.1:42000
+- Rust API: `api_base = "auto"` (recommended) discovers the real port from the
+  desktop's `runtime-ports.json` port file and verifies it with `/health`,
+  falling back to the historical default http://127.0.0.1:41000; an explicit
+  `api_base` in the config still wins.
+- Desktop ports are dynamic since v4.3.8 (bind-probed with fallbacks), so do
+  not hardcode 41000 in new consumers.
 - Authentication: the desktop app's local `X-API-Key`
 
 The desktop application must be running before using this MCP. The bridge uses

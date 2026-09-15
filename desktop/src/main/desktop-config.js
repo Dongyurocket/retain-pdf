@@ -8,6 +8,18 @@ const DEFAULT_BASE_URL = "https://api.deepseek.com/v1";
 function createDesktopConfigStore(app, options = {}) {
   const desktopApiKey = options.desktopApiKey || "";
 
+  // 端口已动态化：实际端口由 main 进程在启动时解析，经此回调注入前端 apiBase。
+  // 回调未就绪（尚未解析完成）时回退到默认口，与前端 runtime.ts 的兑底值保持一致。
+  function resolveRuntimeApiBase() {
+    if (typeof options.resolveApiBase === "function") {
+      const value = options.resolveApiBase();
+      if (typeof value === "string" && value.trim()) {
+        return value.trim();
+      }
+    }
+    return "http://127.0.0.1:41000";
+  }
+
   function createDefaultDesktopConfig() {
     return {
       firstRunCompleted: false,
@@ -53,7 +65,7 @@ function createDesktopConfigStore(app, options = {}) {
 
   function buildDesktopRuntimeConfig(config) {
     return {
-      apiBase: "http://127.0.0.1:41000",
+      apiBase: resolveRuntimeApiBase(),
       xApiKey: desktopApiKey,
       ...buildBrowserConfig(config),
       model: config.model || DEFAULT_MODEL,

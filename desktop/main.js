@@ -19,6 +19,20 @@ const {
   findBindablePort,
   probePort,
 } = require("./src/main/port-availability");
+const {
+  DEFAULT_AI_PORT,
+  DEFAULT_API_PORT,
+  DEFAULT_SIMPLE_PORT,
+  resolveAiPortCandidates,
+  resolveApiPortCandidates,
+  resolveSimplePortCandidates,
+} = require("./src/main/port-plan");
+const {
+  readRuntimePorts,
+  removeRuntimePorts,
+  resolveRuntimePortsPath,
+  writeRuntimePorts,
+} = require("./src/main/runtime-ports");
 const { stopStaleBackendOnPort } = require("./src/main/stale-backend-cleanup");
 
 const desktopLogger = createDesktopLogger(app);
@@ -50,7 +64,11 @@ const backendHttp = createBackendHttp({
 const { canReuseExistingBackend, requestJson } = backendHttp;
 const portOccupant = createPortOccupant({ canConnectToPort, logger: console });
 const { killProcessTreeSync, reclaimPortIfOwnResidual, describeOccupant } = portOccupant;
-const desktopConfigStore = createDesktopConfigStore(app, { desktopApiKey: DESKTOP_API_KEY });
+const desktopConfigStore = createDesktopConfigStore(app, {
+  desktopApiKey: DESKTOP_API_KEY,
+  // 端口已动态化：渲染进程启动晚于后端，IPC 被调用时 resolvedApiPort 已就位。
+  resolveApiBase: () => (resolvedApiPort ? `http://127.0.0.1:${resolvedApiPort}` : ""),
+});
 const {
   buildDesktopConfigResponse,
   loadDesktopConfig,
@@ -62,19 +80,15 @@ let backendStopping = false;
 let splashWindow = null;
 let usingExternalBackend = false;
 let isQuitting = false;
-const AI_SERVICE_PORT = 41100;
-// multipart 提交口没有任何前端/MCP 硬编码依赖（前端只认 41000），
-// 所以在被系统保留时可以自动换端口；41000 是 apiBase，不能挪。
-const DEFAULT_SIMPLE_PORT = 42000;
-const SIMPLE_PORT_FALLBACKS = [41001, 41002, 41003, 41004];
+// 本次启动实际绑定的主 API 端口；在 startBundledBackend 解析后赋值。
+let resolvedApiPort = null;
+let cachedRuntimePortsPath = null;
 
-// 允许用户显式指定 multipart 端口，绕开系统保留段。
-function resolveSimplePortCandidates() {
-  const override = Number.parseInt(process.env.RETAINPDF_DESKTOP_SIMPLE_PORT || "", 10);
-  if (Number.isInteger(override) && override > 0 && override < 65536) {
-    return [override];
+function getRuntimePortsPath() {
+  if (!cachedRuntimePortsPath) {
+    cachedRuntimePortsPath = resolveRuntimePortsPath(app);
   }
-  return [DEFAULT_SIMPLE_PORT, ...SIMPLE_PORT_FALLBACKS];
+  return cachedRuntimePortsPath;
 }
 
 function updateSplashProgress(progress, title, detail) {
@@ -163,6 +177,50 @@ async function getBackendRunningJobCount(apiPort) {
   }
 }
 
+// /health 无需鉴权；data.status === "up" 视为本项目的 rust_api，其他一律按无关进程处理。
+async function getBackendIdentity(apiPort) {
+  try {
+    const payload = await requestJson(`http://127.0.0.1:${apiPort}/health`, {}, 2000);
+    return payload?.data?.status === "up" ? "retainpdf" : "other";
+  } catch (_err) {
+    return "other";
+  }
+}
+
+// retainpdf-ai 的 /healthz 无需鉴权，返回 {"ok": true, "version": ...}。
+async function isRetainpdfAiService(port) {
+  try {
+    const payload = await requestJson(`http://127.0.0.1:${port}/healthz`, {}, 1500);
+    return payload?.ok === true;
+  } catch (_err) {
+    return false;
+  }
+}
+
+// AI 口解析：reserved 换候选；listening 时仅当确认是本项目的 retainpdf-ai 才复用，
+// 被无关进程占用同样换候选；全部不可用时返回 null（AI 问答降级为 502，不阻断启动）。
+async function resolveAiServicePort() {
+  const candidates = resolveAiPortCandidates();
+  for (const candidate of candidates) {
+    const probe = await probePort("127.0.0.1", candidate, { canConnectToPort });
+    logDesktop(
+      `[desktop] AI port ${candidate} state=${probe.state}${probe.code ? ` code=${probe.code}` : ""}`,
+    );
+    if (probe.state === "reserved") {
+      continue;
+    }
+    if (probe.state === "listening") {
+      if (await isRetainpdfAiService(candidate)) {
+        return { port: candidate, reuse: true };
+      }
+      logDesktop(`[desktop] AI port ${candidate} is held by an unrelated process; trying next candidate`);
+      continue;
+    }
+    return { port: candidate, reuse: false };
+  }
+  return { port: null, reuse: false };
+}
+
 async function startBundledBackend() {
   updateSplashProgress(18, "正在检查运行文件", "正在校验后端、Python 和脚本资源");
   const backendRoot = resolveBackendRoot();
@@ -177,10 +235,12 @@ async function startBundledBackend() {
   const rustApiRoot = path.join(dataRoot, "rust_api");
   const typstPackagePath = path.join(backendRoot, "typst-packages");
   const typstPackageCachePath = path.join(dataRoot, "typst-package-cache");
-  const apiPort = 41000;
-  // 实际值在下面的端口探测里确定；复用外部后端的分支不自己启 rust_api，沿用默认值即可。
+  // 三个端口都动态解析（真实 bind 探测 + 候选回退，见 port-plan.js），
+  // 结果写入 runtime-ports.json 供 MCP 等外部进程发现，并注入前端 apiBase。
+  let apiPort = null;
   let simplePort = DEFAULT_SIMPLE_PORT;
-  const aiServicePort = AI_SERVICE_PORT;
+  let aiServicePort = DEFAULT_AI_PORT;
+  let aiServiceReuse = false;
   // packaged: backend/ai_service；开发未 prepare 时可回退仓库 backend/ai_service
   let aiServiceRoot = path.join(backendRoot, "ai_service");
   if (!fs.existsSync(path.join(aiServiceRoot, "retainpdf_ai", "__main__.py"))) {
@@ -233,91 +293,145 @@ async function startBundledBackend() {
   fs.mkdirSync(typstPackageCachePath, { recursive: true });
   updateSplashProgress(34, "正在准备工作目录", "正在初始化本地数据目录");
 
-  // 真实 bind 试探：仅 connect 探测对"系统保留但无人监听"的端口会系统性误判为空闲，
-  // 导致 rust_api 随后绑定失败退出，而错误却表现为"backend did not become ready"。
-  const apiProbe = await probePort("127.0.0.1", apiPort, { canConnectToPort });
-  logDesktop(
-    `[desktop] port ${apiPort} state=${apiProbe.state}${apiProbe.code ? ` code=${apiProbe.code}` : ""}`,
-  );
-  if (apiProbe.state === "reserved") {
-    // 41000 是前端 apiBase，不能自动换端口，只能把原因说清楚。
+  // 主 API 口动态解析。真实 bind 试探：仅 connect 探测对“系统保留但无人监听”的端口会
+  // 系统性误判为空闲。候选顺序见 port-plan.js：reserved（被系统保留块吞掉）或被无关进程
+  // 监听时换下一个候选；只有被同项目的 rust_api 监听时才不换——同一 dataRoot 不允许第二个
+  // 实例，此时按原有语义复用或清理残留。
+  const previousPorts = readRuntimePorts(getRuntimePortsPath());
+  const apiCandidates = resolveApiPortCandidates({ lastPort: previousPorts?.apiPort });
+  const allowExternalBackend = process.env.RETAINPDF_DESKTOP_ALLOW_EXTERNAL_BACKEND === "1";
+  const apiAttempts = [];
+  for (const candidate of apiCandidates) {
+    const probe = await probePort("127.0.0.1", candidate, { canConnectToPort });
+    logDesktop(
+      `[desktop] port ${candidate} state=${probe.state}${probe.code ? ` code=${probe.code}` : ""}`,
+    );
+    if (probe.state === "reserved") {
+      apiAttempts.push({ port: candidate, probe, note: "系统保留" });
+      continue;
+    }
+    if (probe.state === "listening") {
+      const identity = await getBackendIdentity(candidate);
+      if (identity !== "retainpdf") {
+        logDesktop(`[desktop] port ${candidate} is held by an unrelated process; trying next candidate`);
+        apiAttempts.push({ port: candidate, probe, note: "被无关进程占用" });
+        continue;
+      }
+      if (app.isPackaged && !allowExternalBackend) {
+        // 升级安装或异常退出后，旧版 rust_api 可能仍占用端口。
+        // 先尝试自动清理残留进程并启动全新实例，而不是要求用户重启电脑。
+        const runningJobs = await getBackendRunningJobCount(candidate);
+        if (runningJobs > 0) {
+          throw new Error(
+            [
+              `端口 ${candidate} 被另一个仍在执行任务的 RetainPDF 后端占用（${runningJobs} 个任务进行中）。`,
+              "请先关闭另一个 RetainPDF 实例或等待任务完成，再启动新版本。",
+            ].join("\n"),
+          );
+        }
+        updateSplashProgress(38, "检测到残留的旧版服务", "正在清理旧后端进程并重新启动");
+        const cleanup = await stopStaleBackendOnPort(candidate, {
+          canConnectToPort,
+          logger: { log: logDesktop, warn: logDesktopError },
+        });
+        logDesktop(`[desktop] stale backend cleanup: cleaned=${cleanup.cleaned} reason=${cleanup.reason}`);
+        if (!cleanup.cleaned) {
+          throw new Error(
+            [
+              `端口 ${candidate} 上的 RetainPDF 后端无法自动清理（${cleanup.reason}）。`,
+              "同一数据目录不允许第二个后端实例。请关闭其他 RetainPDF、旧版桌面端后再启动；",
+              "或在命令行执行 taskkill /F /IM rust_api.exe。",
+            ].join("\n"),
+          );
+        }
+        logDesktop("[desktop] stale backend cleaned; continuing with fresh backend startup");
+        apiPort = candidate;
+        break;
+      }
+      if (await canReuseExistingBackend(candidate)) {
+        usingExternalBackend = true;
+        apiPort = candidate;
+        break;
+      }
+      throw new Error(
+        [
+          `端口 ${candidate} 上的 RetainPDF 后端无法复用（凭据或版本不匹配）。`,
+          "同一数据目录不允许第二个后端实例，请先关闭该进程后再启动桌面端。",
+        ].join("\n"),
+      );
+    }
+    apiPort = candidate;
+    break;
+  }
+  if (apiPort === null) {
+    const detail = apiAttempts
+      .map((attempt) => {
+        const state = `端口 ${attempt.port}: ${attempt.probe.state}${attempt.probe.code ? ` (${attempt.probe.code})` : ""}`;
+        return attempt.note ? `${state} ${attempt.note}` : state;
+      })
+      .join("\n");
     throw new Error(
       [
-        `端口 ${apiPort} 无法绑定，而它是桌面端主 API 端口，不可更换。`,
-        describeProbe(apiPort, apiProbe),
+        `主 API 端口全部不可用（已尝试 ${apiCandidates.join("、")}）。`,
+        detail,
+        "可设置环境变量 RETAINPDF_DESKTOP_API_PORT 指定一个可用端口后重试。",
       ].filter(Boolean).join("\n"),
     );
   }
-  const apiPortBusy = apiProbe.state === "listening";
-  if (apiPortBusy) {
-    const allowExternalBackend = process.env.RETAINPDF_DESKTOP_ALLOW_EXTERNAL_BACKEND === "1";
-    if (app.isPackaged && !allowExternalBackend) {
-      // 升级安装或异常退出后，旧版 rust_api 可能仍占用端口。
-      // 先尝试自动清理残留进程并启动全新实例，而不是要求用户重启电脑。
-      const runningJobs = await getBackendRunningJobCount(apiPort);
-      if (runningJobs > 0) {
-        throw new Error(
-          [
-            `端口 ${apiPort} 被另一个仍在执行任务的 RetainPDF 后端占用（${runningJobs} 个任务进行中）。`,
-            "请先关闭另一个 RetainPDF 实例或等待任务完成，再启动新版本。",
-          ].join("\n"),
-        );
-      }
-      updateSplashProgress(38, "检测到残留的旧版服务", "正在清理旧后端进程并重新启动");
-      const cleanup = await stopStaleBackendOnPort(apiPort, {
-        canConnectToPort,
-        logger: { log: logDesktop, warn: logDesktopError },
-      });
-      logDesktop(`[desktop] stale backend cleanup: cleaned=${cleanup.cleaned} reason=${cleanup.reason}`);
-      if (!cleanup.cleaned) {
-        throw new Error(
-          [
-            `端口 ${apiPort} 已被占用，且无法自动清理残留进程（${cleanup.reason}）。`,
-            "请关闭其他 RetainPDF、旧版桌面端后再启动；或在命令行执行 taskkill /F /IM rust_api.exe。",
-          ].join("\n"),
-        );
-      }
-      logDesktop("[desktop] stale backend cleaned; continuing with fresh backend startup");
-    } else if (await canReuseExistingBackend(apiPort)) {
-      usingExternalBackend = true;
-      logDesktop(`[desktop] reusing existing backend on port ${apiPort}`);
-      updateSplashProgress(52, "检测到已有本地服务", "桌面端将直接复用当前后端");
-      await waitForPort("127.0.0.1", apiPort, 5000);
-      // 仍尝试拉起 AI（若 41100 空闲）；复用的 Rust 会反代到本机 AI
-      const reuseEnv = buildBackendEnv({
-        apiPort,
-        aiServicePort,
-        aiServiceRoot,
-        backendRoot,
-        bundledFontPath,
-        bundledPythonHome: resolveBundledPythonHome(pythonRuntime.bundledHome),
-        bundledPythonImportPaths: bundledPythonImportPaths(pythonRuntime.bundledHome),
-        bundledTitleBoldFontPath,
-        bundledTypstFontDir,
-        dataRoot,
-        desktopApiKey: DESKTOP_API_KEY,
-        inheritHostPythonPath: !app.isPackaged,
-        pythonRuntime,
-        rustApiRoot,
-        scriptsDir,
-        simplePort,
-        typstBin,
-        typstPackageCachePath,
-        typstPackagePath,
-      });
+  resolvedApiPort = apiPort;
+  if (!usingExternalBackend && apiPort !== DEFAULT_API_PORT) {
+    logDesktop(`[desktop] main api port resolved to ${apiPort} (preferred ${DEFAULT_API_PORT} unavailable)`);
+  }
+
+  if (usingExternalBackend) {
+    logDesktop(`[desktop] reusing existing backend on port ${apiPort}`);
+    updateSplashProgress(52, "检测到已有本地服务", "桌面端将直接复用当前后端");
+    await waitForPort("127.0.0.1", apiPort, 5000);
+    // 复用的 rust_api 反代目标取决于它自己的启动环境；AI 口仍按候选解析并记录到端口文件。
+    const aiResolution = await resolveAiServicePort();
+    aiServicePort = aiResolution.port || DEFAULT_AI_PORT;
+    aiServiceReuse = aiResolution.reuse;
+    if (aiResolution.port && aiServicePort !== DEFAULT_AI_PORT) {
+      logDesktop(
+        `[desktop] AI service resolved to ${aiServicePort}; reused backend may still proxy to its own configured port`,
+      );
+    }
+    const reuseEnv = buildBackendEnv({
+      apiPort,
+      aiServicePort,
+      aiServiceRoot,
+      backendRoot,
+      bundledFontPath,
+      bundledPythonHome: resolveBundledPythonHome(pythonRuntime.bundledHome),
+      bundledPythonImportPaths: bundledPythonImportPaths(pythonRuntime.bundledHome),
+      bundledTitleBoldFontPath,
+      bundledTypstFontDir,
+      dataRoot,
+      desktopApiKey: DESKTOP_API_KEY,
+      inheritHostPythonPath: !app.isPackaged,
+      pythonRuntime,
+      rustApiRoot,
+      scriptsDir,
+      simplePort,
+      typstBin,
+      typstPackageCachePath,
+      typstPackagePath,
+    });
+    if (aiResolution.port !== null) {
       await startRetainpdfAiService({
         aiServicePort,
+        reuse: aiServiceReuse,
         aiServiceRoot,
         env: reuseEnv,
         pythonCommand: pythonRuntime.command,
       });
-      updateSplashProgress(92, "本地服务已就绪", "正在加载主界面");
-      return;
     } else {
-      throw new Error(
-        `端口 ${apiPort} 已被其他进程占用，且不是可复用的 RetainPDF 后端。请先关闭占用进程后再启动桌面端。`,
-      );
+      logDesktopError("[desktop] no bindable AI service port; skipping retainpdf-ai startup");
     }
+    // simple 口归被复用的后端所有，这里如实记为未知。
+    writeRuntimePorts(getRuntimePortsPath(), { apiPort, simplePort: null, aiPort: aiResolution.port });
+    updateSplashProgress(92, "本地服务已就绪", "正在加载主界面");
+    return;
   }
 
   // multipart 提交口没有硬编码消费者，被占用或被系统保留时自动换到相邻端口，
@@ -345,6 +459,19 @@ async function startBundledBackend() {
       `[desktop] multipart api port fell back to ${simplePort} (default ${DEFAULT_SIMPLE_PORT} unavailable)`,
     );
   }
+
+  // retainpdf-ai 口同样在启动前解析，结果经 buildBackendEnv 同时喂给 rust_api 反代与 AI 进程，
+  // 两端天然一致。全部不可用时 AI 问答降级为 502，不阻断启动（与现有策略一致）。
+  const aiResolution = await resolveAiServicePort();
+  if (aiResolution.port === null) {
+    logDesktopError("[desktop] no bindable AI service port; AI ask will return 502");
+  } else if (aiResolution.port !== DEFAULT_AI_PORT) {
+    logDesktop(
+      `[desktop] AI service port fell back to ${aiResolution.port} (default ${DEFAULT_AI_PORT} unavailable)`,
+    );
+  }
+  aiServicePort = aiResolution.port || DEFAULT_AI_PORT;
+  aiServiceReuse = aiResolution.reuse;
 
   const bundledPythonHome = resolveBundledPythonHome(pythonRuntime.bundledHome);
   const env = buildBackendEnv({
@@ -403,13 +530,17 @@ async function startBundledBackend() {
     dialog.showErrorBox("Rust API worker crashed", detail);
   });
 
-  // retainpdf-ai：与 Rust 同生命周期；LLM key 由前端按请求传入
-  await startRetainpdfAiService({
-    aiServicePort,
-    aiServiceRoot,
-    env,
-    pythonCommand: pythonRuntime.command,
-  });
+  // retainpdf-ai：与 Rust 同生命周期；LLM key 由前端按请求传入。
+  // 端口全部不可用时跳过启动，避免在注定绑不上的端口上空等就绪超时。
+  if (aiResolution.port !== null) {
+    await startRetainpdfAiService({
+      aiServicePort,
+      reuse: aiServiceReuse,
+      aiServiceRoot,
+      env,
+      pythonCommand: pythonRuntime.command,
+    });
+  }
 
   let waitingProgress = 58;
   const waitingTimer = setInterval(() => {
@@ -425,11 +556,17 @@ async function startBundledBackend() {
   await backendStartupDiagnostics.waitForBackendReady("127.0.0.1", apiPort, backendReadyTimeoutMs);
   clearInterval(waitingTimer);
   logDesktop(`[desktop] backend ready on port ${apiPort}`);
+  writeRuntimePorts(getRuntimePortsPath(), {
+    apiPort,
+    simplePort,
+    aiPort: aiResolution.port,
+  });
   updateSplashProgress(92, "本地服务已就绪", "正在加载主界面");
 }
 
 async function startRetainpdfAiService({
   aiServicePort,
+  reuse = false,
   aiServiceRoot,
   env,
   pythonCommand,
@@ -439,9 +576,9 @@ async function startRetainpdfAiService({
     return;
   }
 
-  const aiBusy = await canConnectToPort("127.0.0.1", aiServicePort);
-  if (aiBusy) {
-    logDesktop(`[desktop] AI service port ${aiServicePort} already in use; reusing`);
+  // 端口已在启动前经真实 bind 探测解析；healthz 确认过的 retainpdf-ai 直接复用。
+  if (reuse) {
+    logDesktop(`[desktop] AI service port ${aiServicePort} already serves retainpdf-ai; reusing`);
     return;
   }
 
@@ -527,6 +664,8 @@ app.on("window-all-closed", () => {
 app.on("before-quit", () => {
   isQuitting = true;
   backendStopping = true;
+  // 端口文件只代表本次运行；退出后由消费者自行 health-check 兑底。
+  removeRuntimePorts(getRuntimePortsPath());
   // Synchronously terminate whole process trees: plain ChildProcess.kill()
   // only kills the direct child, leaving supervised grandchildren
   // (ai service, workers) orphaned and holding ports.

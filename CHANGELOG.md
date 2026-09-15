@@ -5,6 +5,30 @@
 
 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [SemVer](https://semver.org/lang/zh-CN/)。
 
+## [v4.3.8] - 2026-09-15
+
+### 修复与增强
+
+- **桌面端三个本地端口全部动态化（根治 HNS 端口保留类启动故障）**：
+  - v4.3.7 修复了「系统保留端口被误判为空闲」的探测缺陷并让 multipart 端口可回退，但主 API 端口 `41000` 与 AI 服务端口 `41100` 仍是固定值，落入 Windows HNS 保留块（开机时成块生成、每次位置不同）或被无关进程占用时桌面端依旧无法启动；
+  - 本版本将三个端口全部改为候选制真实 bind 探测：主 API `41000 → 上次成功端口 → 41200-41203`，multipart `42000 → 41001-41004`（不变），AI 服务 `41100 → 41300-41302`；候选被系统保留或被无关进程占用时自动取下一个，只有被同项目 rust_api 占用时才不换口（同一数据目录不允许第二个实例），此时按原有语义复用或清理残留；
+  - AI 服务端口同步补上真实 bind 探测与回退（原先仍是 connect 探测且无回退），并通过未鉴权的 `/healthz` 辨认占用者是否为 retainpdf-ai 后再复用；
+  - 新增环境变量 `RETAINPDF_DESKTOP_API_PORT` / `RETAINPDF_DESKTOP_AI_PORT` 用于显式固定对应端口（设置后只试该端口，失败即报错）。
+- **端口发现机制（runtime-ports.json）**：
+  - 桌面端启动后把本次实际绑定的端口原子写入 `userData/runtime-ports.json`（Windows 为 `%APPDATA%\RetainPDF\runtime-ports.json`），退出时清理；
+  - 前端 apiBase 改为主进程运行时注入实际端口（原先注入的是写死的 `41000` 常量），桌面 UI 在端口回退后依然直连正确地址，无需任何手动配置；
+  - MCP 桥 `retainpdf_mcp.py` 新增 `api_base = "auto"` 模式：启动时读取端口文件并逐一 `/health` 验证来发现真实端口，发现失败时回退到 `41000`（与旧固定配置行为一致）；显式配置 `api_base` 时仍优先使用。
+- **测试**：
+  - 新增 `desktop/src/main/port-plan.test.mjs`（8 项）与 `runtime-ports.test.mjs`（6 项），覆盖三类端口候选解析（默认顺序、env 独占、上次端口去重）与端口文件的原子写、损坏兑底与幂等清理；桌面端主进程测试 27/27 通过。
+
+### 安装包
+
+- Windows：由 GitHub Actions 构建 `RetainPDF-Windows-4.3.8-Setup.exe`
+- macOS：由 GitHub Actions 构建 `RetainPDF-Mac-4.3.8.dmg`
+- Linux：由 GitHub Actions 构建 `RetainPDF-Linux-4.3.8.deb`
+
+[v4.3.8]: https://github.com/Dongyurocket/retain-pdf/releases/tag/v4.3.8
+
 ## [v4.3.7] - 2026-09-15
 
 ### 修复与增强
