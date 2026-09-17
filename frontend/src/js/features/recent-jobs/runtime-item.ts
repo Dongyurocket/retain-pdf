@@ -368,6 +368,7 @@ export function mergeLibraryJobItem(
     ),
     cover_url: firstNonEmpty(previousItem.cover_url, job.cover_url),
     thumbnail_url: firstNonEmpty(previousItem.thumbnail_url, job.thumbnail_url),
+    created_at: firstNonEmpty(job.created_at, previousItem.created_at),
     updated_at: firstNonEmpty(job.updated_at, previousItem.updated_at),
     progress,
     runtime_status: nextRuntimeStatus,
@@ -398,6 +399,30 @@ export function createLibraryJobItemFromRuntime(
   }, job, { stageAdapterPort });
 }
 
+/** Reject late snapshots without treating a retry as the previous run. */
+export function isStaleRuntimeUpdate(
+  current: LibraryJobItem = {},
+  incoming: LibraryJobItem = {},
+): boolean {
+  const sameJob = Boolean(current.job_id && current.job_id === incoming.job_id);
+  if (!sameJob) {
+    if (current.source_job_id && current.source_job_id === incoming.job_id) return true;
+    if (incoming.source_job_id && incoming.source_job_id === current.job_id) return false;
+    // Run creation time is stable even when an old worker reports late progress.
+    const currentCreated = Date.parse(current.created_at || "");
+    const incomingCreated = Date.parse(incoming.created_at || "");
+    if (Number.isFinite(currentCreated) && Number.isFinite(incomingCreated)
+      && currentCreated !== incomingCreated) {
+      return incomingCreated < currentCreated;
+    }
+  }
+  if (sameJob && isJobTerminal(current) && !isJobTerminal(incoming)) return true;
+  const currentTime = Date.parse(current.updated_at || "");
+  const incomingTime = Date.parse(incoming.updated_at || "");
+  return Number.isFinite(currentTime) && Number.isFinite(incomingTime)
+    && incomingTime < currentTime;
+}
+
 export function mergeRuntimePatches(
   items: LibraryJobItem[] | null | undefined,
   patches: Map<string, LibraryJobItem>,
@@ -419,7 +444,7 @@ export function mergeRuntimePatches(
     if (!patch && documentId) {
       patch = patchByDocumentId.get(documentId) || null;
     }
-    if (!patch) {
+    if (!patch || isStaleRuntimeUpdate(item, patch)) {
       return item;
     }
     // 用 patch 的 job_id 覆盖（重试后书架仍是原位原书）

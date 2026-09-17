@@ -8,6 +8,9 @@ use super::{
     sync_runtime_state, ProcessRuntimeDeps,
 };
 
+#[cfg(test)]
+mod failure_regression_tests;
+
 mod artifacts;
 mod bundle_download;
 mod bundle_download_retry;
@@ -40,6 +43,59 @@ use transport::resolve_local_upload_path;
 use workspace::OcrWorkspace;
 
 pub async fn execute_ocr_job(
+    deps: ProcessRuntimeDeps,
+    job: JobRuntimeState,
+    output_job_id_override: Option<String>,
+    parent_job_id: Option<String>,
+) -> Result<JobRuntimeState> {
+    let job_id = job.job_id.clone();
+    match execute_ocr_job_inner(
+        deps.clone(),
+        job,
+        output_job_id_override,
+        parent_job_id.clone(),
+    )
+    .await
+    {
+        Ok(job) => Ok(job),
+        Err(err) => {
+            // OCR children run inline, outside the top-level lifecycle error handler.
+            let mut job = deps.db.get_job(&job_id)?.into_runtime();
+            let parent_canceled = if let Some(parent_id) = parent_job_id.as_deref() {
+                is_cancel_requested_with_registry(deps.canceled_jobs.as_ref(), parent_id).await
+                    || deps.db.get_job(parent_id)?.status == JobStatusKind::Canceled
+            } else {
+                false
+            };
+            if parent_canceled
+                || job.status == JobStatusKind::Canceled
+                || is_cancel_requested_with_registry(deps.canceled_jobs.as_ref(), &job_id).await
+            {
+                job.status = JobStatusKind::Canceled;
+                job.stage = Some("canceled".to_string());
+                job.stage_detail = Some("OCR task canceled".to_string());
+                clear_canceled_runtime_artifacts(&mut job);
+                clear_job_failure(&mut job);
+            } else {
+                super::append_error_chain_log(&mut job, &err);
+                let detail = super::format_error_chain(&err);
+                job.status = JobStatusKind::Failed;
+                job.stage = Some("failed".to_string());
+                job.stage_detail = Some(detail.clone());
+                job.error = Some(detail);
+                super::refresh_job_failure(&mut job);
+            }
+            job.pid = None;
+            job.updated_at = now_iso();
+            job.finished_at = Some(now_iso());
+            sync_runtime_state(&mut job);
+            save_ocr_job(&deps, &job, parent_job_id.as_deref()).await?;
+            Ok(job)
+        }
+    }
+}
+
+async fn execute_ocr_job_inner(
     deps: ProcessRuntimeDeps,
     mut job: JobRuntimeState,
     output_job_id_override: Option<String>,

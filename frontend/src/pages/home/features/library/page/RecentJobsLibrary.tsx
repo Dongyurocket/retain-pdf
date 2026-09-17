@@ -80,7 +80,9 @@ export function RecentJobsLibrary({ onBatchModeChange }: any = {}) {
     if (refreshing) return;
     setRefreshing(true);
     try {
-      await actions.refresh?.();
+      await actions.refresh();
+    } catch (err) {
+      toast.error(err?.message || "刷新失败，请稍后重试");
     } finally {
       setRefreshing(false);
     }

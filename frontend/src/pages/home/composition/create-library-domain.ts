@@ -110,8 +110,15 @@ export function createLibraryDomain({ features, documentRef, statusArea }: Creat
     renderRecentJobsError: recentJobsViewPort.renderError,
     statePort: recentJobsStatePort,
   }),
-    refresh: () => libraryEventPort.requestRefresh({ force: true }),
-  } as RecentJobActions & { refresh: () => unknown };
+    refresh: async () => {
+      await features.recentJobsFeature.loadRecentJobs({
+        reset: true,
+        silent: true,
+        preservePage: true,
+        throwOnError: true,
+      });
+    },
+  } as RecentJobActions & { refresh: () => Promise<void> };
 
   const libraryController = createLibraryController({
     documentRef,

@@ -3,6 +3,7 @@ import { createRecentJobsRuntimePort } from "./job-runtime-port.js";
 import { createRecentJobsReaderPort } from "./reader-port.js";
 import { createRecentJobsNavigationPort } from "./navigation-port.js";
 import { addJobTombstone } from "./tombstones.js";
+import { friendlyLibraryDeleteError } from "../documents-library/delete-error.js";
 
 export function createRecentJobActions({
   apiPrefix,
@@ -41,18 +42,6 @@ export function createRecentJobActions({
     navigationPort.openJob(normalizedJobId);
   }
 
-  // 409 = 删除保护:该 job 被收藏引用,不能自动 force,必须让用户先处理收藏
-  function friendlyDeleteError(error) {
-    const message = `${error?.message || error || ""}`;
-    if (error?.status === 409 || message.includes("(409)")) {
-      const count = message.match(/\d+/)?.[0];
-      return count
-        ? `该文档有 ${count} 条收藏，请先删除收藏后再删除文档。`
-        : "该文档存在收藏引用，请先删除相关收藏后再删除文档。";
-    }
-    return message || "删除失败";
-  }
-
   async function deleteJob(jobId) {
     const normalizedJobId = `${jobId || ""}`.trim();
     if (!normalizedJobId || !deleteLibraryBook) {
@@ -61,7 +50,7 @@ export function createRecentJobActions({
     try {
       await deleteLibraryBook(apiPrefix, normalizedJobId);
     } catch (error) {
-      renderRecentJobsError(friendlyDeleteError(error), { reset: false });
+      renderRecentJobsError(friendlyLibraryDeleteError(error), { reset: false });
       return;
     }
     // 墓碑:删除成功但后端投影/轮询竞态时防止条目复活

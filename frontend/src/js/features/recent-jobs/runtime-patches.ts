@@ -4,6 +4,7 @@ import { isPrimaryRecentJob } from "./pagination.js";
 import { clearDocumentTombstone, isTombstoned } from "./tombstones.js";
 import {
   createLibraryJobItemFromRuntime,
+  isStaleRuntimeUpdate,
   mergeLibraryJobItem,
   mergeRuntimePatches,
   type LibraryJobItem,
@@ -232,7 +233,7 @@ export function createRecentJobsRuntimePatches({
 
   function apply(items: LibraryJobItem[] | null | undefined) {
     // 先把 patches 按 document_id 并进列表项（重试换 job_id 时不丢原卡）
-    const mergedItems = mergeRuntimePatches(items, runtimeJobPatches, { stageAdapterPort });
+    const mergedItems = applyExisting(items);
     const presentJobIds = new Set(
       mergedItems
         .map((item) => `${item?.job_id || ""}`.trim())
@@ -261,6 +262,21 @@ export function createRecentJobsRuntimePatches({
   }
 
   function applyExisting(items: LibraryJobItem[] | null | undefined) {
+    for (const item of items || []) {
+      // A listed run no longer needs optimistic insertion on other pages/filters.
+      if (item.job_id) runtimeCreatedJobIds.delete(item.job_id);
+      for (const [jobId, patch] of runtimeJobPatches) {
+        const sameDocument = item.document_id && item.document_id === patch.document_id;
+        const serverTime = Date.parse(item.updated_at || "");
+        const patchTime = Date.parse(patch.updated_at || "");
+        const acknowledged = item.job_id === jobId && item.status === patch.status
+          && Number.isFinite(serverTime) && serverTime === patchTime;
+        if (acknowledged || ((item.job_id === jobId || sameDocument) && isStaleRuntimeUpdate(item, patch))) {
+          runtimeJobPatches.delete(jobId);
+          runtimeCreatedJobIds.delete(jobId);
+        }
+      }
+    }
     return mergeRuntimePatches(items, runtimeJobPatches, { stageAdapterPort });
   }
 
@@ -336,6 +352,10 @@ export function createRecentJobsRuntimePatches({
     const previousPatch = previousJobId && previousJobId !== jobId
       ? runtimeJobPatches.get(previousJobId)
       : runtimeJobPatches.get(jobId);
+    if ((previousItem && isStaleRuntimeUpdate(previousItem, job))
+      || (previousPatch && isStaleRuntimeUpdate(previousPatch, job))) {
+      return;
+    }
     const merged = mergeRuntimePatch(previousPatch || previousItem, job, { stageAdapterPort });
     const patch = stampBookIdentity(merged, previousItem, job);
     runtimeJobPatches.set(jobId, patch);

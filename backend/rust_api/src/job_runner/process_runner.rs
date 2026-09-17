@@ -40,7 +40,7 @@ pub(crate) async fn execute_process_job(
     extra_cancel_job_ids: &[String],
 ) -> Result<JobRuntimeState> {
     let worker_runtime = deps.worker_process_runtime();
-    let (job, child) = spawn_started_process(
+    let (job, mut child) = spawn_started_process(
         &deps.persist,
         &deps.canceled_jobs,
         &worker_runtime,
@@ -52,16 +52,45 @@ pub(crate) async fn execute_process_job(
         &deps.persist,
         &deps.canceled_jobs,
         &worker_runtime,
-        child,
+        &mut child,
         job,
         extra_cancel_job_ids,
     )
-    .await?;
+    .await;
+    let execution = match execution {
+        Ok(execution) => execution,
+        Err(error) => {
+            cleanup_failed_process(&mut child, &worker_runtime).await;
+            return Err(error);
+        }
+    };
     let completed = match execution {
         ProcessExecution::Completed(completed) => completed,
         ProcessExecution::TimedOut(timed_out_job) => return Ok(timed_out_job),
     };
     finalize_completed_process(&deps, &worker_runtime, completed, extra_cancel_job_ids).await
+}
+
+async fn cleanup_failed_process(
+    child: &mut tokio::process::Child,
+    runtime: &crate::config::WorkerProcessRuntimeConfig<'_>,
+) {
+    if let Some(pid) = child.id() {
+        if let Err(error) = super::terminate_job_process_tree(
+            pid,
+            runtime.worker_terminate_grace_secs,
+            runtime.worker_terminate_poll_ms,
+        )
+        .await
+        {
+            tracing::warn!("failed to terminate worker tree after execution error: {error:#}");
+        }
+        // Use the owned handle as a fallback if tree termination failed.
+        let _ = child.start_kill();
+        if let Err(error) = child.wait().await {
+            tracing::warn!("failed to reap worker after execution error: {error:#}");
+        }
+    }
 }
 
 #[cfg(test)]
@@ -152,6 +181,38 @@ mod tests {
             canceled_jobs: Arc::new(RwLock::new(HashSet::new())),
             job_slots: Arc::new(Semaphore::new(1)),
         }
+    }
+
+    #[tokio::test]
+    async fn failed_process_cleanup_stops_and_reaps_owned_worker() {
+        let state = test_state("failed-process-cleanup");
+        let deps = ProcessRuntimeDeps::new(
+            state.config.clone(),
+            state.db.clone(),
+            state.canceled_jobs.clone(),
+            state.job_slots.clone(),
+        );
+        let runtime = deps.worker_process_runtime();
+        let mut job = build_job();
+        #[cfg(windows)]
+        {
+            job.command = vec![
+                "cmd.exe".into(),
+                "/C".into(),
+                "ping -n 30 127.0.0.1 >nul".into(),
+            ];
+        }
+        #[cfg(unix)]
+        {
+            job.command = vec!["sh".into(), "-c".into(), "sleep 30".into()];
+        }
+        let mut child = super::super::worker_process::spawn_worker_process(&runtime, &job)
+            .expect("spawn owned test worker");
+        assert!(child.id().is_some());
+        cleanup_failed_process(&mut child, &runtime).await;
+        assert!(child.try_wait().expect("query worker").is_some());
+        assert!(child.id().is_none());
+        let _ = fs::remove_dir_all(&state.config.project_root);
     }
 
     #[test]

@@ -238,7 +238,7 @@ export type RecentJobActions = {
 };
 
 export type LibraryActions = RecentJobActions & {
-  refresh: () => unknown;
+  refresh: () => Promise<void>;
   openSourceReader: LibraryController["openSourceReader"];
   translateDocument: LibraryController["translateDocument"];
   deleteDocument: LibraryController["deleteDocument"];
@@ -494,7 +494,7 @@ export type HomeServicesDomains = {
   library: {
     recentJobsViewPort: RecentJobsReactViewPort;
     recentJobsStatePort: RecentJobsStatePort;
-    recentJobActions: RecentJobActions & { refresh: () => unknown };
+    recentJobActions: RecentJobActions & { refresh: () => Promise<void> };
     libraryController: LibraryController;
     bookDetailStore: DialogStore<LibraryCardItem | null>;
     collectionsController: CollectionsController;

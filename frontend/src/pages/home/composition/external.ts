@@ -1,6 +1,8 @@
 // composition 层对 src/js/* 的统一出口。
 // pages/home/features 与 create-*.ts 禁止再直接 import ../../../js/**；缺符号只改本文件。
 
+export { friendlyLibraryDeleteError } from "../../../js/features/documents-library/delete-error.js";
+
 // —— config / constants ——
 export { API_PREFIX } from "../../../js/config/api-constants.js";
 export {

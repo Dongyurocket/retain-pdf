@@ -31,7 +31,7 @@ pub(super) async fn collect_process_execution(
     persist: &JobPersistDeps,
     canceled_jobs: &Arc<RwLock<HashSet<String>>>,
     worker_runtime: &WorkerProcessRuntimeConfig<'_>,
-    mut child: tokio::process::Child,
+    child: &mut tokio::process::Child,
     job: JobRuntimeState,
     extra_cancel_job_ids: &[String],
 ) -> Result<ProcessExecution> {
@@ -39,16 +39,17 @@ pub(super) async fn collect_process_execution(
     let stderr = child.stderr.take().context("missing stderr pipe")?;
     let child_pid = job.pid;
     let timeout_secs = job.request_payload.runtime.timeout_seconds;
-    let stdout_handle = tokio::spawn(read_stdout(
+    let mut stdout_handle = tokio::spawn(read_stdout(
         persist.clone(),
         canceled_jobs.clone(),
         job,
         stdout,
         extra_cancel_job_ids.to_vec(),
     ));
-    let stderr_handle = tokio::spawn(read_stream(stderr));
+    let mut stderr_handle = tokio::spawn(read_stream(stderr));
     let started = Instant::now();
 
+    let result = async {
     let status = if timeout_secs > 0 {
         match timeout(Duration::from_secs(timeout_secs as u64), child.wait()).await {
             Ok(result) => result?,
@@ -77,8 +78,8 @@ pub(super) async fn collect_process_execution(
                         "timed out waiting to reap worker process after termination; it may remain a zombie until the server exits"
                     ),
                 }
-                let (stdout_text, stdout_job) = stdout_handle.await??;
-                let stderr_text = stderr_handle.await??;
+                let (stdout_text, stdout_job) = timeout(Duration::from_secs(5), &mut stdout_handle).await.context("worker stdout did not close after exit")???;
+                let stderr_text = timeout(Duration::from_secs(5), &mut stderr_handle).await.context("worker stderr did not close after exit")???;
                 return Ok(ProcessExecution::TimedOut(persist_timeout_failure(
                     persist,
                     worker_runtime.project_root,
@@ -93,8 +94,8 @@ pub(super) async fn collect_process_execution(
         child.wait().await?
     };
 
-    let (stdout_text, latest_job) = stdout_handle.await??;
-    let stderr_text = stderr_handle.await??;
+    let (stdout_text, latest_job) = timeout(Duration::from_secs(5), &mut stdout_handle).await.context("worker stdout did not close after exit")???;
+    let stderr_text = timeout(Duration::from_secs(5), &mut stderr_handle).await.context("worker stderr did not close after exit")???;
     Ok(ProcessExecution::Completed(CompletedProcess {
         status,
         started,
@@ -102,4 +103,15 @@ pub(super) async fn collect_process_execution(
         stderr_text,
         latest_job,
     }))
+    }.await;
+    // No detached reader may overwrite the terminal state after this returns.
+    if !stdout_handle.is_finished() {
+        stdout_handle.abort();
+        let _ = stdout_handle.await;
+    }
+    if !stderr_handle.is_finished() {
+        stderr_handle.abort();
+        let _ = stderr_handle.await;
+    }
+    result
 }

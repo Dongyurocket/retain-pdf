@@ -38,25 +38,34 @@ pub(super) async fn spawn_started_process(
 ) -> Result<(JobRuntimeState, tokio::process::Child)> {
     prepare_job_for_spawn(&mut job);
 
-    let child = spawn_worker_process(worker_runtime, &job)?;
+    let mut child = spawn_worker_process(worker_runtime, &job)?;
     job.pid = child.id();
-    persist_runtime_job_with_resources(
-        persist.db.as_ref(),
-        &persist.data_root,
-        &persist.output_root,
-        &job,
-    )?;
-    info!("started job {} pid={:?}", job.job_id, job.pid);
+    let result: Result<()> = async {
+        persist_runtime_job_with_resources(
+            persist.db.as_ref(),
+            &persist.data_root,
+            &persist.output_root,
+            &job,
+        )?;
+        info!("started job {} pid={:?}", job.job_id, job.pid);
 
-    if is_cancel_requested_any(canceled_jobs, &job.job_id, extra_cancel_job_ids).await {
-        if let Some(pid) = job.pid {
-            terminate_job_process_tree(
-                pid,
-                worker_runtime.worker_terminate_grace_secs,
-                worker_runtime.worker_terminate_poll_ms,
-            )
-            .await?;
+        if is_cancel_requested_any(canceled_jobs, &job.job_id, extra_cancel_job_ids).await {
+            if let Some(pid) = job.pid {
+                terminate_job_process_tree(
+                    pid,
+                    worker_runtime.worker_terminate_grace_secs,
+                    worker_runtime.worker_terminate_poll_ms,
+                )
+                .await?;
+            }
         }
+        Ok(())
+    }
+    .await;
+    if let Err(error) = result {
+        // Keep ownership until the worker is stopped; dropping Child does not kill it.
+        super::cleanup_failed_process(&mut child, worker_runtime).await;
+        return Err(error);
     }
 
     Ok((job, child))

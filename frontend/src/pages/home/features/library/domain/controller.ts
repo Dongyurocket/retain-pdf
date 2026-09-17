@@ -27,6 +27,7 @@ import type {
 import {
   translateDocument,
   deleteDocument,
+  friendlyLibraryDeleteError,
   patchDocument,
   API_PREFIX,
   APP_EVENTS,
@@ -212,20 +213,6 @@ export function createLibraryController({
     return result;
   }
 
-  // 文档级删除(后端补了 DELETE /documents/:id 之后):删掉 document + 名下所有
-  // job/upload/文件。馆藏文档和已翻译文档统一走这条(卡片都带 document_id)。
-  function friendlyDocumentDeleteError(error: ErrorLike) {
-    const message = typeof error === "string" ? error : `${error?.message || error || ""}`;
-    const status = typeof error === "object" && error ? error.status : undefined;
-    if (status === 409 || message.includes("(409)")) {
-      const count = message.match(/\d+/)?.[0];
-      return count
-        ? `该文档有 ${count} 条收藏，请先删除收藏后再删除文档。`
-        : "该文档存在收藏引用，请先删除相关收藏后再删除文档。";
-    }
-    return message || "删除文档失败";
-  }
-
   // 同翻译:失败抛给调用方(弹窗内展示)。成功后乐观删卡 + 静默 soft reload，
   // 不再 await 非 silent 整页 loading（主页闪空根因之一）。
   async function deleteLibraryDocument(documentId?: string | null) {
@@ -236,7 +223,7 @@ export function createLibraryController({
     try {
       await deleteDocument(API_PREFIX, normalizedId);
     } catch (error) {
-      throw new Error(friendlyDocumentDeleteError(error as ErrorLike));
+      throw new Error(friendlyLibraryDeleteError(error));
     }
     // 墓碑:删除成功后即使后端投影/轮询竞态也不让条目复活
     addDocumentTombstone(normalizedId);

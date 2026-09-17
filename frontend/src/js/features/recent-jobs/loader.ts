@@ -28,6 +28,8 @@ export interface LoadRecentJobsOptions {
   page?: number;
   /** reset=true 时保留当前页码(删除/更新后的 soft 对齐用)。 */
   preservePage?: boolean;
+  /** Manual callers can observe failures; background loads remain non-rejecting. */
+  throwOnError?: boolean;
 }
 
 export interface LibraryBooksPageData {
@@ -115,7 +117,52 @@ export function createRecentJobsLoader({
   }) as LibraryBooksResourcePort,
 }: CreateRecentJobsLoaderOptions): RecentJobsLoader {
   let loading = false;
-  let pendingLoad: LoadRecentJobsOptions | null = null;
+  type LoadWaiter = {
+    resolve: () => void;
+    reject: (error: unknown) => void;
+    throwOnError: boolean;
+  };
+  type LoadBatch = { options: LoadRecentJobsOptions; waiters: LoadWaiter[] };
+  let pendingLoad: LoadBatch | null = null;
+
+  async function runBatch(batch: LoadBatch): Promise<void> {
+    loading = true;
+    try {
+      await performLoad(batch.options);
+      batch.waiters.forEach((waiter) => waiter.resolve());
+    } catch (error) {
+      batch.waiters.forEach((waiter) => {
+        if (waiter.throwOnError) waiter.reject(error);
+        else waiter.resolve();
+      });
+    } finally {
+      loading = false;
+      const next = pendingLoad;
+      pendingLoad = null;
+      if (next) void runBatch(next);
+    }
+  }
+
+  function load(options: LoadRecentJobsOptions = {}): Promise<void> {
+    const normalized = { ...options, query: options.query ?? getQuery?.() ?? "" };
+    return new Promise<void>((resolve, reject) => {
+      const waiter = { resolve, reject, throwOnError: Boolean(options.throwOnError) };
+      if (loading) {
+        const previous = pendingLoad?.options;
+        pendingLoad = {
+          options: {
+            ...normalized,
+            reset: Boolean(normalized.reset || previous?.reset),
+            silent: Boolean(normalized.silent && previous?.silent !== false),
+            preservePage: Boolean(normalized.preservePage || previous?.preservePage),
+          },
+          waiters: [...(pendingLoad?.waiters || []), waiter],
+        };
+      } else {
+        void runBatch({ options: normalized, waiters: [waiter] });
+      }
+    });
+  }
 
   function isLoading() {
     return loading;
@@ -179,34 +226,23 @@ export function createRecentJobsLoader({
     return Math.min(totalPages, Math.max(1, (Number(snapshot.currentPage) || 1) + 1));
   }
 
-  async function load({
+  async function performLoad({
     reset = false,
     silent = false,
     query = getQuery?.() || "",
     page,
     preservePage = false,
   }: LoadRecentJobsOptions = {}): Promise<void> {
-    if (loading) {
-      pendingLoad = {
-        reset: reset || Boolean(pendingLoad?.reset),
-        silent: silent && pendingLoad?.silent !== false,
-        query,
-        page,
-        preservePage: preservePage || Boolean(pendingLoad?.preservePage),
-      };
-      return;
-    }
     if (!viewPort.hasView()) {
       return;
     }
-    loading = true;
     const targetPage = resolveTargetPage({ reset, page, preservePage });
     const startOffset = (targetPage - 1) * RECENT_JOBS_PAGE_SIZE;
     if (!silent) {
       homeStatePort.setRecentJobsLoadingState(RECENT_JOBS_LOADING_STATES.LOADING);
     }
     if (reset) {
-      recentJobsStatePort.resetPagination();
+      if (!preservePage) recentJobsStatePort.resetPagination();
       if (!silent) {
         viewPort.renderLoading();
       }
@@ -246,8 +282,7 @@ export function createRecentJobsLoader({
       if (reset && collected.length === 0) {
         // 当前页已空(如删掉本页最后一项):自动回退上一页;第 1 页则落空态。
         if (targetPage > 1) {
-          loading = false;
-          await load({ reset: true, silent, query, page: targetPage - 1 });
+          await performLoad({ reset: true, silent, query, page: targetPage - 1, preservePage });
           return;
         }
         commitRecentJobsEmpty({
@@ -297,15 +332,7 @@ export function createRecentJobsLoader({
         storeDrivenRendering,
         viewPort,
       });
-    } finally {
-      loading = false;
-      if (pendingLoad) {
-        const nextLoad = pendingLoad;
-        pendingLoad = null;
-        window.setTimeout(() => {
-          void load(nextLoad);
-        }, 0);
-      }
+      throw err;
     }
   }
 
