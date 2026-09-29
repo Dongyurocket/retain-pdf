@@ -12,7 +12,7 @@ use crate::models::domain::JobRuntimeState;
 
 use super::super::{terminate_job_process_tree, JobPersistDeps};
 use super::io_support::{read_stdout, read_stream};
-use super::timeout_support::persist_timeout_failure;
+use super::timeout_support::{effective_worker_timeout_secs, persist_timeout_failure};
 
 pub(super) struct CompletedProcess {
     pub(super) status: ExitStatus,
@@ -38,7 +38,10 @@ pub(super) async fn collect_process_execution(
     let stdout = child.stdout.take().context("missing stdout pipe")?;
     let stderr = child.stderr.take().context("missing stderr pipe")?;
     let child_pid = job.pid;
-    let timeout_secs = job.request_payload.runtime.timeout_seconds;
+    let timeout_secs = effective_worker_timeout_secs(
+        job.request_payload.runtime.timeout_seconds,
+        job.request_payload.translation.timeout_seconds,
+    );
     let mut stdout_handle = tokio::spawn(read_stdout(
         persist.clone(),
         canceled_jobs.clone(),
@@ -87,6 +90,7 @@ pub(super) async fn collect_process_execution(
                     started,
                     stdout_text,
                     stderr_text,
+                    timeout_secs,
                 )?));
             }
         }

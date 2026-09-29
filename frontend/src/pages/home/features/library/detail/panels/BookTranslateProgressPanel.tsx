@@ -3,13 +3,18 @@
 // 只要有真实 job_id 就挂载 #book-detail-job-status-card；
 // 已完成书用 fallbackItem 补全完成态（见 status/merge-snapshot-with-fallback）。
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useHomeServices } from "../../../../home-services-context.js";
 import { useStoreSnapshot } from "../../../../../../shared/react/use-store.js";
 import { StatusCard } from "../../../status/StatusCard.jsx";
 import { StageFlow } from "../../../status/StageFlow.jsx";
 import type { LibraryCardItem } from "../../types.js";
 import { isLibraryOnlyItem } from "../../../../composition/external.js";
+import {
+  emptyProgressJobMemory,
+  progressAttachTarget,
+  rememberProgressSuccessor,
+} from "../progress-job.js";
 
 function resolveJobId(item: LibraryCardItem = {}) {
   const raw = `${item.job_id || item.active_job_id || ""}`.trim();
@@ -56,15 +61,23 @@ export function BookTranslateProgressPanel({
     || cardStatus === "queued"
     || cardStatus === "pending";
 
-  // 静默拉 job：只喂 statusCardStore。
-  // 注意：点「重新 xxx」会切到新 job_id；若 statusCard 已在跑新 job，勿用旧 id 覆盖。
+  // 断点恢复 / 重新翻译会把进度卡切到新 job，详情 payload 仍可能是旧的失败 job。
+  // 新任务终态后不能再 attach 旧 id，否则详情显示失败、图书馆却显示完成。
+  const progressJobMemory = useRef(emptyProgressJobMemory());
+
   useEffect(() => {
-    if (!dialogOpen || !showProgress || !jobId) return undefined;
-    if (cardJobId === jobId) return undefined;
-    if (cardJobId && cardPollingActive && cardJobId !== jobId) {
-      return undefined;
-    }
-    actions?.attachJobProgress?.(jobId);
+    if (!dialogOpen || !showProgress) return undefined;
+    progressJobMemory.current = rememberProgressSuccessor(progressJobMemory.current, {
+      itemJobId: jobId,
+      cardJobId,
+    });
+    const target = progressAttachTarget(
+      jobId,
+      cardJobId,
+      progressJobMemory.current.successorJobId,
+    );
+    if (!target || target === cardJobId) return undefined;
+    actions?.attachJobProgress?.(target);
     return undefined;
     // 刻意不把 actions 放进 deps（services 引用稳定，避免无意义重跑）
     // eslint-disable-next-line react-hooks/exhaustive-deps

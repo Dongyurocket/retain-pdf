@@ -88,7 +88,18 @@ export async function rerunCurrentJob({
     }
     viewPort.closeDialog();
     setText?.("error-box", `已创建恢复任务 ${nextJobId}，开始轮询。`);
-    startPolling?.(nextJobId);
+    const sourceJob = rerunContext?.job || {};
+    const sourceJobId = firstNonEmptyText(sourceJob.job_id, sourceJob.jobId, sourceJob?.job?.job_id);
+    startPolling?.(nextJobId, {
+      seedPayload: {
+        job_id: nextJobId,
+        source_job_id: sourceJobId,
+        document_id: firstNonEmptyText(sourceJob.document_id, sourceJob?.job?.document_id),
+        status: "running",
+        library_only: false,
+        active_job_id: nextJobId,
+      },
+    });
   } catch (error) {
     syncRerunAction({
       ...rerunContext,

@@ -75,6 +75,28 @@ export interface BuildRenderPayloadOptions {
   constants: WorkflowPayloadConstants;
 }
 
+/** 设置里「单次请求超时」下拉的最大档。不超过该值的 timeoutSeconds 是单次 LLM 请求时限。 */
+export const PER_REQUEST_TIMEOUT_CEILING_SECONDS = 300;
+
+/**
+ * 进程墙：整段 Python worker 的最长运行时间。
+ * 设置项「单次请求超时」（60–300 秒）会写进同一个 timeoutSeconds，
+ * 不能再当成整本翻译+渲染的进程杀掉时限。
+ */
+export function resolveProcessTimeoutSeconds(
+  timeoutSeconds: number | undefined,
+  processDefault = 1800,
+): number {
+  const value = Number(timeoutSeconds);
+  const fallback = Number.isFinite(processDefault) && processDefault > PER_REQUEST_TIMEOUT_CEILING_SECONDS
+    ? Math.floor(processDefault)
+    : 1800;
+  if (!Number.isFinite(value) || value <= PER_REQUEST_TIMEOUT_CEILING_SECONDS) {
+    return fallback;
+  }
+  return Math.floor(value);
+}
+
 export function buildSourcePayload({
   workflow,
   developerConfig,

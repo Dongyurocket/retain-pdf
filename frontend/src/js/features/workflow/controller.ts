@@ -11,6 +11,7 @@ import {
   buildRenderPayload as buildRenderPayloadRequest,
   buildSourcePayload as buildSourcePayloadRequest,
   buildTranslationPayload as buildTranslationPayloadRequest,
+  resolveProcessTimeoutSeconds,
   type WorkflowDeveloperConfig,
   type WorkflowPayloadConstants,
 } from "./payload.js";
@@ -432,7 +433,12 @@ export function mountWorkflowFeature({
       }),
       runtime: {
         job_id: "",
-        timeout_seconds: developerConfig.timeoutSeconds,
+        // timeoutSeconds 是单次请求超时，只进 translation.timeout_seconds。
+        // 进程墙单独取默认 1800，避免 120 秒把仍在渲染的 worker 杀掉。
+        timeout_seconds: resolveProcessTimeoutSeconds(
+          developerConfig.timeoutSeconds,
+          DEFAULT_TIMEOUT_SECONDS,
+        ),
       },
     };
     if (workflow === WORKFLOW_BOOK || workflow === WORKFLOW_TRANSLATE) {

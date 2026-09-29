@@ -6,6 +6,7 @@ import {
   buildRenderPayload,
   buildSourcePayload,
   buildTranslationPayload,
+  resolveProcessTimeoutSeconds,
 } from "../src/js/features/workflow/payload.js";
 import { mountWorkflowFeature } from "../src/js/features/workflow/controller.js";
 import {
@@ -279,6 +280,23 @@ function mountWorkflowHarness({
   }
   return mountWorkflowFeature(options);
 }
+
+test("per-request timeout is not copied into the python worker wall", () => {
+  assert.equal(resolveProcessTimeoutSeconds(120, 1800), 1800);
+  assert.equal(resolveProcessTimeoutSeconds(300, 1800), 1800);
+  assert.equal(resolveProcessTimeoutSeconds(1800, 3600), 1800);
+  assert.equal(resolveProcessTimeoutSeconds(undefined, 1800), 1800);
+
+  const feature = mountWorkflowHarness({
+    developerConfig: developerConfig({
+      workflow: "book",
+      timeoutSeconds: 120,
+    }),
+  });
+  const payload = feature.collectRunPayload();
+  assert.equal(payload.runtime.timeout_seconds, 3600);
+  assert.equal(payload.translation.timeout_seconds, 120);
+});
 
 test("collectRunPayload builds book submit payload from resolved workflow inputs", () => {
   const feature = mountWorkflowHarness({

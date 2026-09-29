@@ -7,6 +7,27 @@ use crate::models::domain::{now_iso, JobRuntimeState, JobSnapshot, JobStatusKind
 
 use super::super::JobPersistDeps;
 
+/// 设置项「单次请求超时」的最大档。与前端 TIMEOUT_OPTIONS 上限一致。
+pub(super) const PER_REQUEST_TIMEOUT_CEILING_SECS: i64 = 300;
+
+/// 进程墙。单次请求超时曾被原样写入 `runtime.timeout_seconds`，
+/// 整本翻译会在渲染末段被 120 秒杀掉。两者相等且不超过单次请求上限时，
+/// 回退到默认进程超时；显式更短的进程超时（测试里的 1 秒）仍生效。
+pub(super) fn effective_worker_timeout_secs(
+    runtime_timeout_secs: i64,
+    translation_timeout_secs: Option<i64>,
+) -> i64 {
+    if let Some(request_timeout) = translation_timeout_secs {
+        if runtime_timeout_secs > 0
+            && runtime_timeout_secs == request_timeout
+            && runtime_timeout_secs <= PER_REQUEST_TIMEOUT_CEILING_SECS
+        {
+            return crate::models::defaults::default_timeout_seconds();
+        }
+    }
+    runtime_timeout_secs
+}
+
 pub(super) fn timeout_detail_for_stage(stage: Option<&str>) -> &'static str {
     match stage {
         Some("normalizing") => "normalization timeout",
@@ -67,8 +88,12 @@ pub(super) fn persist_timeout_failure(
     started: Instant,
     stdout_text: String,
     stderr_text: String,
+    effective_timeout_secs: i64,
 ) -> Result<JobRuntimeState> {
     let mut timed_out_job = persist.db.get_job(&stdout_job.job_id)?;
+    if effective_timeout_secs > 0 {
+        timed_out_job.request_payload.runtime.timeout_seconds = effective_timeout_secs;
+    }
     append_timeout_stderr_tail(&mut timed_out_job, &stderr_text);
     attach_timeout_process_result(
         &mut timed_out_job,
@@ -85,4 +110,23 @@ pub(super) fn persist_timeout_failure(
         &timed_out_job,
     )?;
     Ok(timed_out_job.into_runtime())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::effective_worker_timeout_secs;
+
+    #[test]
+    fn copied_request_timeout_does_not_kill_the_worker_at_120s() {
+        assert_eq!(effective_worker_timeout_secs(120, Some(120)), 1800);
+        assert_eq!(effective_worker_timeout_secs(300, Some(300)), 1800);
+    }
+
+    #[test]
+    fn explicit_process_timeout_is_preserved() {
+        assert_eq!(effective_worker_timeout_secs(1, None), 1);
+        assert_eq!(effective_worker_timeout_secs(1, Some(120)), 1);
+        assert_eq!(effective_worker_timeout_secs(10, Some(180)), 10);
+        assert_eq!(effective_worker_timeout_secs(1800, Some(120)), 1800);
+    }
 }

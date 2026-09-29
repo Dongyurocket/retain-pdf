@@ -5,6 +5,20 @@
 
 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [SemVer](https://semver.org/lang/zh-CN/)。
 
+## [v4.3.11] - 2026-09-29
+
+### 修复
+
+- 设置里的「单次请求超时」（默认 120 秒）不再被当作整段 Python worker 的进程时限。整本翻译在渲染收尾阶段不再因此被杀掉并显示「Python worker 执行超时」。
+- 已把单次请求超时原样写入 `runtime.timeout_seconds` 的旧任务，执行时回退到默认 1800 秒进程墙；单次模型请求超时仍按设置生效。
+- 断点恢复或重新翻译成功后，详情进度不再挂回旧的失败任务。图书馆与进度卡读取同一份当前任务状态。
+
+### 验证
+
+- 前端相关测试 55 项通过（workflow payload、进度卡跟随、状态详情）。本机缺少 MSVC `link.exe`，Rust API 测试未能在本机构建。
+
+[v4.3.11]: https://github.com/Dongyurocket/retain-pdf/releases/tag/v4.3.11
+
 ## [v4.3.10] - 2026-09-17
 
 ### 修复
