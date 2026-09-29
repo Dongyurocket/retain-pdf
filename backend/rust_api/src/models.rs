@@ -29,6 +29,7 @@ pub use common::{
     build_job_id, now_iso, ApiResponse, JobStatusKind, UploadRecord, UploadView, WorkflowKind,
     LOG_TAIL_LIMIT,
 };
+pub(crate) use defaults::default_timeout_seconds;
 pub use glossary::{
     build_glossary_id, glossary_to_csv_export, glossary_to_detail, glossary_to_summary,
     GlossaryCsvExportView, GlossaryCsvParseInput, GlossaryCsvParseView, GlossaryDetailView,

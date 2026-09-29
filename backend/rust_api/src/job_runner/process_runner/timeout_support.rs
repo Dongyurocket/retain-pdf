@@ -22,7 +22,7 @@ pub(super) fn effective_worker_timeout_secs(
             && runtime_timeout_secs == request_timeout
             && runtime_timeout_secs <= PER_REQUEST_TIMEOUT_CEILING_SECS
         {
-            return crate::models::defaults::default_timeout_seconds();
+            return crate::models::default_timeout_seconds();
         }
     }
     runtime_timeout_secs
