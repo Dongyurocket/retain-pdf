@@ -86,14 +86,14 @@ mod tests {
     #[test]
     fn sensitive_values_collects_ocr_option_sourced_credentials() {
         let mut input = CreateJobInput::default();
-        input
-            .ocr
-            .options
-            .insert("credential".to_string(), Value::String("opt-cred-1".to_string()));
-        input
-            .ocr
-            .options
-            .insert("token".to_string(), Value::String("opt-token-2".to_string()));
+        input.ocr.options.insert(
+            "credential".to_string(),
+            Value::String("opt-cred-1".to_string()),
+        );
+        input.ocr.options.insert(
+            "token".to_string(),
+            Value::String("opt-token-2".to_string()),
+        );
         input.ocr.options.insert(
             "api_key".to_string(),
             Value::String("  opt-api-key-3  ".to_string()),
@@ -116,8 +116,10 @@ mod tests {
         // Values are trimmed before being treated as secrets.
         assert!(secrets.contains(&"opt-api-key-3".to_string()));
 
-        let text =
-            redact_text("cred=opt-cred-1 token=opt-token-2 key=opt-api-key-3", &secrets);
+        let text = redact_text(
+            "cred=opt-cred-1 token=opt-token-2 key=opt-api-key-3",
+            &secrets,
+        );
         assert!(!text.contains("opt-cred-1"));
         assert!(!text.contains("opt-token-2"));
         assert!(!text.contains("opt-api-key-3"));
@@ -127,10 +129,10 @@ mod tests {
     #[test]
     fn sensitive_values_ignores_keys_outside_the_known_credential_set() {
         let mut input = CreateJobInput::default();
-        input
-            .ocr
-            .options
-            .insert("unrelated".to_string(), Value::String("not-a-secret".to_string()));
+        input.ocr.options.insert(
+            "unrelated".to_string(),
+            Value::String("not-a-secret".to_string()),
+        );
 
         let spec = ResolvedJobSpec::from_input(input);
         let secrets = sensitive_values(&spec);
