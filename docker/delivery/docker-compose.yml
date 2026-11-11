@@ -2,7 +2,11 @@ name: retainpdf
 
 services:
   app:
-    image: ${APP_IMAGE:-wxyhgk/retainpdf-app:latest}
+    # 本仓库不发布官方镜像，默认从源码本地构建；也可用 APP_IMAGE 指向自建镜像。
+    image: ${APP_IMAGE:-retainpdf-app:latest}
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile.app
     restart: unless-stopped
     env_file:
       - ./docker/app.env
@@ -20,7 +24,12 @@ services:
       start_period: 20s
 
   web:
-    image: ${WEB_IMAGE:-wxyhgk/retainpdf-web:latest}
+    image: ${WEB_IMAGE:-retainpdf-web:latest}
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile.web
+      args:
+        RETAIN_PDF_VERSION: ${RETAIN_PDF_VERSION:-local}
     restart: unless-stopped
     depends_on:
       app:

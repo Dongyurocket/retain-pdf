@@ -171,20 +171,25 @@ sudo xattr -r -d com.apple.quarantine /Applications/RetainPDF.app
 
 ---
 
-### Docker 部署（适合局域网 / 团队服务）
+### Docker 部署（自行构建，适合局域网 / 团队服务）
 
-当前仓库提供了完整的 Docker 交付配置：
+本仓库**不再发布官方 Docker 镜像**，也没有自动构建并推送镜像的 CI。需要容器部署时请从源码本地构建，构建产物只留在本机。
+
+仓库内保留完整的 Docker 构建与编排配置：
 
 - [docker/delivery/README.md](docker/delivery/README.md)
 - [docker/delivery/docker-compose.yml](docker/delivery/docker-compose.yml)
+- [docker/build-images.sh](docker/build-images.sh)：本地构建镜像的脚本（只构建，不推送）
 
 基本部署步骤：
 
 ```bash
 git clone https://github.com/Dongyurocket/retain-pdf.git
 cd retain-pdf/docker/delivery
-docker compose up -d
+docker compose up -d --build
 ```
+
+`docker compose` 默认使用 `retainpdf-app:latest` / `retainpdf-web:latest` 这两个本地镜像名；镜像不存在时按 compose 里的 `build` 配置从仓库源码构建。首次构建要下载基础镜像与依赖，耗时通常在十几分钟量级。
 
 启动后默认访问地址：
 
@@ -198,24 +203,26 @@ http://127.0.0.1:40001
 - `41000`：Rust API 服务
 - `42000`：multipart 异步文件提交接口
 
-#### Docker 更新
-
-更新至最新镜像版本：
+#### 单独构建镜像
 
 ```bash
-cd retain-pdf/docker/delivery
-docker compose pull
-docker compose up -d
+./docker/build-images.sh local
+cd docker/delivery
+APP_IMAGE=retainpdf-app:local WEB_IMAGE=retainpdf-web:local docker compose up -d
 ```
 
-切换指定镜像版本：
+脚本接受自定义 tag（如 `./docker/build-images.sh v4.3.12`），并透传 `http_proxy` / `https_proxy` 等构建参数；需要交叉构建时可用 `PLATFORMS=linux/arm64 ./docker/build-images.sh local`（走 buildx）。
+
+#### 源码更新后重新构建
 
 ```bash
-cd retain-pdf/docker/delivery
-APP_IMAGE=wxyhgk/retainpdf-app:<version> \
-WEB_IMAGE=wxyhgk/retainpdf-web:<version> \
-docker compose up -d
+cd retain-pdf
+git pull
+cd docker/delivery
+docker compose up -d --build
 ```
+
+重建会替换容器，`app_data` 数据卷里的任务、图书馆与上传文件保留。
 
 ---
 
@@ -245,7 +252,7 @@ docker compose up -d
 - `frontend-react/`：另一条 React 前端迁移区（独立技术栈：Vite + TypeScript）。
 - `desktop/`：Electron 桌面端打包与运行壳。
 - `backend/`：Rust API、Python 流水线核心算法与相关服务。
-- `docker/`：Dockerfile、交付与部署 compose 配置。
+- `docker/`：Dockerfile、本地构建脚本与交付 compose 配置（不发布官方镜像，需要时本地构建）。
 - `mcp/`：stdio MCP 桥接实现，供 AI Agent 自动化调度本地 RetainPDF。
 
 ### 核心开发状态与方向

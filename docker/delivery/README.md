@@ -39,21 +39,23 @@
 
 如果你只是想把服务跑起来，按下面步骤做就够了。
 
+> 本仓库不再发布官方 Docker 镜像。下面用的是仓库自带的 compose 构建配置，镜像在你自己的机器上从源码构建，不会从 Docker Hub 拉取预置镜像。
+
 ## 1. 先确认机器环境
 
 建议环境：
 
 - 系统：`Linux` 优先，推荐 `Ubuntu 22.04 / 24.04`
-- CPU 架构：当前镜像按 `x86_64 / amd64` 构建，不是 ARM 版本
+- CPU 架构：镜像由本机自行构建，架构跟随构建机器（`x86_64` / ARM 均可）
 - CPU：至少 `4 核`
 - 内存：至少 `8GB`，推荐 `16GB` 或更高
 - 磁盘：至少预留 `10GB` 可用空间
-- 网络：需要能访问 Docker Hub、MinerU 和你的模型 API
+- 网络：需要能访问 Docker Hub（拉取基础镜像）、MinerU 和你的模型 API
 
 说明：
 
 - 这个项目主要吃 CPU、内存和网络，不依赖独立显卡
-- 如果你的机器是 `Mac M`、树莓派、ARM 服务器，请先确认是否具备 `x86_64` 兼容运行环境
+- 如果你的机器是 `Mac M`、树莓派、ARM 服务器，直接按本机架构构建镜像即可；跨架构部署可用 `PLATFORMS` 交叉构建
 - 如果只是轻量自用，`4 核 + 8GB` 可以起服务
 - 如果你要多人同时用，建议从 `8 核 + 16GB` 起步
 
@@ -74,15 +76,17 @@ docker compose version
 ## 3. 拉取 GitHub 项目
 
 ```bash
-git clone https://github.com/wxyhgk/retain-pdf.git
+git clone https://github.com/Dongyurocket/retain-pdf.git
 cd retain-pdf/docker/delivery
 ```
 
 ## 4. 启动服务
 
 ```bash
-docker compose up -d
+docker compose up -d --build
 ```
+
+首次执行会先构建 `retainpdf-app` / `retainpdf-web` 两个镜像，需要下载基础镜像与依赖，耗时通常在十几分钟量级；之后复用构建缓存。
 
 启动完成后，默认访问地址：
 
@@ -95,7 +99,7 @@ http://127.0.0.1:40001
 ## 文件作用
 
 - `docker-compose.yml`
-  Docker 编排入口。默认直接拉取 Docker Hub 镜像并启动 `app` + `web`。
+  Docker 编排入口。默认使用本地镜像名 `retainpdf-app:latest` / `retainpdf-web:latest`，镜像不存在时按 `build` 配置从仓库源码构建并启动 `app` + `web`。
 - `docker/app.env`
   后端运行参数。控制容器内路径、字体、端口、并发和上传限制。
 - `docker/web.env`
@@ -185,15 +189,19 @@ http://127.0.0.1:40001
 
 如果留空，最终用户需要在页面右上角的“API 配置”弹窗中自己填写。
 
-## 如果要换成你自己的镜像版本
+## 如果要换成你自己的镜像
 
-也可以这样启动：
+先构建带 tag 的本地镜像，再用环境变量指定：
 
 ```bash
-APP_IMAGE=wxyhgk/retainpdf-app:<version> \
-WEB_IMAGE=wxyhgk/retainpdf-web:<version> \
+./docker/build-images.sh v4.3.12        # 仓库根目录执行
+cd docker/delivery
+APP_IMAGE=retainpdf-app:v4.3.12 \
+WEB_IMAGE=retainpdf-web:v4.3.12 \
 docker compose up -d
 ```
+
+如果你把镜像推到了自己的私有仓库，也可以把上面的 `APP_IMAGE` / `WEB_IMAGE` 直接写成该仓库地址。
 
 # 开发者
 
