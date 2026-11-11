@@ -20,7 +20,7 @@
 
 RetainPDF 从设计之初就致力于解决各类 PDF 的保留排版翻译问题，尤其是图片型/扫描版 PDF，以及复杂行内公式的提取与精确排版回填。
 
-在保留排版翻译场景中，RetainPDF 针对翻译后 PDF 的体积控制、排版保真度、运行速度和字号自适应等关键体验进行了深度工程优化。同时，项目采用前后端分离架构，打通了 OCR、翻译、排版渲染与跨平台交付全链路，模块间保持解耦，既方便开箱即用，也便于二次开发与组件替换。
+在保留排版翻译场景中，RetainPDF 针对翻译后 PDF 的体积控制、排版保真度、运行速度和字号自适应等关键体验进行了深度工程优化。同时，项目采用前后端分离架构，打通了 OCR、翻译、排版渲染与 Windows 桌面端交付全链路，模块间保持解耦，既方便开箱即用，也便于二次开发与组件替换。
 
 ### 方案对比
 
@@ -85,8 +85,8 @@ RetainPDF 从设计之初就致力于解决各类 PDF 的保留排版翻译问�
   - **组完成判定修复**：已独立翻译的单块在复核合并为组后增加成员级判断，防止打回重新 pending。
   - **未翻译块数警告**：成功任务若有段落因限流或超时保留原文，在状态详情与后台日志中如实标注警告，消除用户对渲染引擎排版丢字的误解。
 
-- **🛡️ 桌面端与跨平台优化**
-  - 修复 Windows 上传路径反斜杠安全检查，统一跨平台行为。
+- **🛡️ 桌面端优化与 Windows 兼容**
+  - 修复 Windows 上传路径反斜杠安全检查。
   - **退出整树同步清理**：退出时同步清理整棵子进程树，Rust 端接入控制台信号走 Axum 优雅关机，彻底断绝 Python workers 与 AI 孤儿进程残留。
   - **端口占用自愈**：启动时使用原生 `netstat` + `tasklist` 毫秒级识别占用进程，覆盖 41000/42000/41002 全端口，支持中文环境容错与 `/health` 接口认尸回退；NSIS 安装器在安装前主动结束残留进程，升级安装后不再报端口占用。
   - 客户端“检查更新”直通本 Fork Releases，方便及时获取最新发布包。
@@ -135,27 +135,17 @@ RetainPDF 从设计之初就致力于解决各类 PDF 的保留排版翻译问�
 
 ### 桌面端下载（推荐日常使用）
 
-前往 [GitHub Releases](https://github.com/Dongyurocket/retain-pdf/releases/latest) 下载对应平台的最新安装包（当前版本 **v4.3.4**）：
+前往 [GitHub Releases](https://github.com/Dongyurocket/retain-pdf/releases/latest) 下载最新安装包（当前版本 **v4.3.12**）：
 
-- **Windows**：下载 `RetainPDF-Windows-4.3.4-Setup.exe`（NSIS 安装包）
-- **macOS**：下载 `RetainPDF-Mac-4.3.4.dmg`（适配 Apple Silicon 架构）
-- **Linux**：下载 `RetainPDF-Linux-4.3.4.deb`（适配 Debian / Ubuntu 系列）
+- **Windows**：`RetainPDF-Windows-4.3.12-Setup.exe`（NSIS 安装包，Windows 10/11 x64）
+
+本项目只发布 Windows 桌面端，不提供 macOS / Linux 安装包。
 
 #### Windows 桌面端界面
 
 <p align="center">
   <img src="resources/brand/RetainPDF-desktop.png" alt="RetainPDF Windows 桌面端" width="860" />
 </p>
-
-#### macOS 提示
-
-由于当前未加入 Apple 开发者计划，macOS 版本首次打开时可能出现应用“已损坏”或无法打开的安全提示。将应用拖入 `/Applications` 后，在终端中执行以下命令即可正常运行：
-
-```bash
-sudo xattr -r -d com.apple.quarantine /Applications/RetainPDF.app
-```
-
----
 
 ### 使用指引
 
@@ -172,6 +162,8 @@ sudo xattr -r -d com.apple.quarantine /Applications/RetainPDF.app
 ---
 
 ### Docker 部署（自行构建，适合局域网 / 团队服务）
+
+> 定位说明：桌面客户端只支持 Windows（Windows 10/11 x64）。本节是面向 Linux 服务器的 Web 化部署方式，与桌面客户端的平台支持范围无关。
 
 本仓库**不再发布官方 Docker 镜像**，也没有自动构建并推送镜像的 CI。需要容器部署时请从源码本地构建，构建产物只留在本机。
 
@@ -261,14 +253,14 @@ RetainPDF 目前具备完整的产品链路：
 
 - **Rust API**：负责任务状态机、图书馆文档管理、事件流广播、产物引用与进程编排。
 - **Python Pipeline**：负责版面 OCR 归一化、智能翻译、公式保护、排版对齐渲染与 PDF 生成。
-- **Frontend & Desktop**：三页 React SPA 与 Electron 壳，支持跨平台本地运行与局域网 Web 访问。
+- **Frontend & Desktop**：三页 React SPA 与 Electron 壳，支持 Windows 本地运行与局域网 Web 访问。
 
 持续关注与改进的方向包括：
 
 - 复杂扫描版面与公式的排版保留精度
 - 长段落与紧密公式混合排版下的文字避让与字体自适应
 - 翻译一致性与术语注入效果
-- 跨平台工程化构建与轻量化部署
+- Windows 工程化构建与轻量化部署
 
 欢迎对 PDF 解析、排版渲染、大模型翻译应用感兴趣的开发者共同探讨与贡献！
 

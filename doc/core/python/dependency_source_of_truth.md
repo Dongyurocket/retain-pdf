@@ -21,6 +21,9 @@
 - [`desktop/requirements-desktop-windows.txt`](../../desktop/requirements-desktop-windows.txt)
 - [`desktop/requirements-desktop-macos.txt`](../../desktop/requirements-desktop-macos.txt)
 
+其中 `requirements-desktop-posix.txt` / `requirements-desktop-macos.txt` 仅供容器与历史脚本使用；
+桌面端只发布 Windows，发布产物只消费 `requirements-desktop-windows.txt`。
+
 ## 更新方式
 
 修改完 [`pyproject.toml`](../../pyproject.toml) 后，执行：

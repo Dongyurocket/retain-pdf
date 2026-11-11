@@ -1,6 +1,6 @@
 # RetainPDF 项目地图（Proma 维护）
 
-PDF 保留排版翻译全栈项目：扫描/图片型 PDF、行内公式渲染是核心场景。前后端分离：Rust API + Python OCR/翻译/渲染流水线 + 前端 SPA + Electron 桌面端 + Docker 交付。
+PDF 保留排版翻译全栈项目：扫描/图片型 PDF、行内公式渲染是核心场景。前后端分离：Rust API + Python OCR/翻译/渲染流水线 + 前端 SPA + Electron 桌面端（只发布 Windows）+ Docker 交付。
 
 <!-- proma:project-map:start -->
 ## 项目入口与执行环境
@@ -15,19 +15,20 @@ PDF 保留排版翻译全栈项目：扫描/图片型 PDF、行内公式渲染�
 - `backend/scripts/`：Python 流水线，分层 `runtime/`（pipeline 编排）、`services/`（OCR/翻译/渲染实现）、`foundation/`（配置/共享工具）、`entrypoints/`（人工入口）、`devtools/`（测试探针、诊断、架构检查）。主链路 `PDF -> OCR provider -> document.v1.json -> translation -> rendering -> PDF`；stage 为 `normalize.stage.v1` -> `translate.stage.v1` -> `render.stage.v1`，整书由 `book.stage.v1` 编排。
 - `backend/packages/`：可编辑安装包 `retainpdf-core`、`retainpdf-devtools`（测试正向 `backend/python-tests/` 迁移）；`backend/fonts/`：发布字体资源（非缓存）。
 - `frontend/`：生产前端，三页 React SPA（index/reader/detail，esbuild + Tailwind 4）；`frontend-react/` 是另一条技术栈的迁移区，不替代 `frontend/`。
-- `desktop/`：Electron 打包与运行壳；`docker/`：Dockerfile、本地构建脚本（`docker/build-images.sh`）与交付 compose（`docker/delivery/`），不再发布官方镜像；`mcp/`：stdio MCP 桥。
+- `desktop/`：Electron 打包与运行壳；只发布 Windows 10/11 x64，不构建 macOS/Linux 产物。`docker/`：Dockerfile、本地构建脚本（`docker/build-images.sh`）与交付 compose（`docker/delivery/`），不再发布官方镜像，仅供 Linux 服务器部署；`mcp/`：stdio MCP 桥。
 - `doc/`：文档库（入口 `doc/README.md`）；`experiments/`：独立实验与 POC；`data/`：本地运行输出与样本（不入库）。
 
 ## 常用命令
 
 - Rust API 本地启动（仓库根）：`cd backend/rust_api && RUST_API_DATA_ROOT=<abs data> RUST_API_SCRIPTS_DIR=<abs scripts> cargo run`（DATA_ROOT/SCRIPTS_DIR 建议绝对路径）。
-- 前端：`npm run build`（css+js+version；改样式类名后必须跑并提交生成的 `styles.css`）、`npm run typecheck`、`npm test`、`npm run visual:check`；静态服务 `python3 -m http.server 40001`。
+- 前端：`npm run build`（css+js+version；改样式类名后必须跑并提交生成的 `styles.css`）、`npm run typecheck`、`npm test`、`npm run visual:check`。
 - Python 测试：先 `pip install -e backend/packages/retainpdf-core` 与 `-e backend/packages/retainpdf-devtools --no-build-isolation`，再 `python backend/python-tests/run_python_tests.py [可选测试路径]`。
 - 桌面端主进程测试：`cd desktop && npm test`（未接 CI）。
-- 专题细节按需读 `../memory/`：验证基线与 CI 陷阱 `verification-and-ci.md`、端口动态化与 Windows 端口保留坑 `desktop-runtime.md`、发版与更新检测 `release-flow.md`、MCP 与工作区约定 `workspace-mcp.md`、本机工具链 `local-env.md`。
+- 专题细节按需读 `../memory/`：验证基线 `verification-and-ci.md`、端口坑 `desktop-runtime.md`、发版与更新检测 `release-flow.md`、MCP 与工作区约定 `workspace-mcp.md`、本机工具链 `local-env.md`。
 
 ## 边界与红线
 
+- 桌面端只针对 Windows 开发与发布：Release Desktop 只有 Windows 构建，不新增 macOS/Linux 打包目标；Docker 仅用于 Linux 服务器部署，不代表客户端跨平台支持。
 - Python `runtime/pipeline/` 只做阶段编排，不消费 OCR provider 原始结构；翻译走 `services.translation.workflow` facade；渲染源预处理走 `services.rendering.source.*`。
 - OCR 原始产物先归一化为 `ocr/normalized/document.v1.json`；翻译/渲染只消费 normalized document 与 translation artifacts，是否进翻译以 `policy.translate` 为准。
 - 不提交：`backend/scripts/.env/*.env`、`backend/rust_api/auth.local.json`、`secrets/`、`backend/rust_api/target/`、`backend/python/`、`backend/typst-win32/bin/`。

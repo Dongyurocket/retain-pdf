@@ -9,6 +9,7 @@
 
 ### 变更
 
+- 桌面端只发布 Windows 版本（Windows 10/11 x64）：Release Desktop 移除 Linux 与 macOS 构建 job，`desktop/package.json` 移除 `dist:mac` / `dist:linux` 脚本与 electron-builder 的 `mac` / `linux` 配置；文档同步说明只提供 Windows 安装包。Docker 容器部署保留，定位为 Linux 服务器部署方式，与桌面客户端的平台支持无关。
 - 不再发布 Docker 镜像：删除 `.github/workflows/release-docker.yml` 与 `.github/workflows/publish-current-web.yml`（构建并推送 Docker Hub 的 CI），以及推送脚本 `docker/release-images.sh`、`docker/build-arm64.sh`。
 - `docker/delivery/docker-compose.yml` 默认改为本地构建（镜像名 `retainpdf-app:latest` / `retainpdf-web:latest`），不再指向上游 `wxyhgk/retainpdf-*` 镜像；新增 `docker/build-images.sh`，只构建不推送，支持自定义 tag 与 `PLATFORMS` 交叉构建。
 - `README.md` 与 `docker/delivery/README.md` 的容器部署说明改为自行构建，移除 `docker compose pull` 与切换上游镜像版本的步骤；`docker/delivery/README.md` 的 clone 地址改为本 Fork。

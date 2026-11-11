@@ -19,9 +19,7 @@
     "verify-frontend-sync": "npm run sync-frontend && npm run smoke:frontend-desktop",
     "prepare-app": "npm --prefix ../frontend run build && node scripts/prepare-app.mjs",
     "dist:win32": "npm run prepare-app && electron-builder --win portable --x64 --config.directories.output=win",
-    "dist:win32-installer": "npm run prepare-app && electron-builder --win nsis --x64 --config.directories.output=win",
-    "dist:mac": "RETAIN_PDF_BUNDLE_MAC_PYTHON=1 npm run prepare-app && RETAIN_PDF_BUNDLE_MAC_PYTHON=1 electron-builder --mac dmg --publish never --config.directories.output=mac",
-    "dist:linux": "npm run prepare-app && electron-builder --linux deb --publish never --config.directories.output=linux"
+    "dist:win32-installer": "npm run prepare-app && electron-builder --win nsis --x64 --config.directories.output=win"
   },
   "devDependencies": {
     "electron": "^33.3.1",
@@ -60,26 +58,6 @@
         }
       ],
       "artifactName": "RetainPDF-Windows-${version}.${ext}"
-    },
-    "mac": {
-      "category": "public.app-category.productivity",
-      "icon": "build/icon.icns",
-      "artifactName": "RetainPDF-Mac-${version}.${ext}"
-    },
-    "linux": {
-      "target": [
-        "deb"
-      ],
-      "category": "Utility",
-      "icon": "build/icons",
-      "maintainer": "wxyhgk <wxyhgk@qq.com>",
-      "desktop": {
-        "Name": "RetainPDF",
-        "Comment": "PDF retain-layout translation desktop application",
-        "Categories": "Office;Utility;",
-        "StartupWMClass": "RetainPDF"
-      },
-      "artifactName": "RetainPDF-Linux-${version}.${ext}"
     },
     "nsis": {
       "oneClick": false,
