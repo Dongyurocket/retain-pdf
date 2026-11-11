@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use serde_json::json;
 use std::path::{Path, PathBuf};
 
@@ -9,6 +9,7 @@ use crate::ocr_provider::paddle::{
 };
 use crate::ocr_provider::OcrTaskHandle;
 
+use super::artifacts::download_source_pdf;
 use super::artifacts::persist_provider_result;
 use super::paddle_errors::attach_paddle_runtime_error;
 use super::paddle_markdown::materialize_paddle_markdown_artifacts;
@@ -31,7 +32,8 @@ pub(super) async fn run_local_ocr_transport_paddle(
     log_paddle_unsupported_options(job);
     let model_name = normalize_model_name(&job.request_payload.ocr.paddle_model);
     job.request_payload.ocr.paddle_model = model_name.clone();
-    let (submit_path, cache_bust_guard) = prepare_paddle_submit_path(job, upload_path);
+    let (submit_path, cache_bust_guard) = prepare_paddle_submit_path(job, upload_path)
+        .map_err(|err| attach_paddle_runtime_error(job, err, "prepare"))?;
     let created = client
         .submit_local_file(
             &submit_path,
@@ -62,20 +64,39 @@ pub(super) async fn run_remote_ocr_transport_paddle(
     job: &mut JobRuntimeState,
     client: &PaddleClient,
     provider_result_json_path: &Path,
+    source_dir: &Path,
     job_root: &Path,
     parent_job_id: Option<&str>,
 ) -> Result<()> {
     log_paddle_unsupported_options(job);
     let model_name = normalize_model_name(&job.request_payload.ocr.paddle_model);
     job.request_payload.ocr.paddle_model = model_name.clone();
-    let created = client
-        .submit_remote_url(
-            &job.request_payload.source.source_url,
-            &model_name,
-            &build_paddle_optional_payload(&model_name, deps.paddle_runtime().max_input_images),
-        )
-        .await
-        .map_err(|err| attach_paddle_runtime_error(job, err, "submit"))?;
+    let optional_payload =
+        build_paddle_optional_payload(&model_name, deps.paddle_runtime().max_input_images);
+    let created = if job.request_payload.ocr.no_cache {
+        let source_pdf = download_source_pdf(&job.request_payload.source.source_url, source_dir)
+            .await
+            .map_err(|err| attach_paddle_runtime_error(job, err, "download"))?;
+        let (submit_path, cache_bust_guard) = prepare_paddle_submit_path(job, &source_pdf)
+            .map_err(|err| attach_paddle_runtime_error(job, err, "prepare"))?;
+        let result = client
+            .submit_local_file(&submit_path, &model_name, &optional_payload)
+            .await
+            .map_err(|err| attach_paddle_runtime_error(job, err, "submit"));
+        if let Some(temp_path) = cache_bust_guard {
+            let _ = std::fs::remove_file(temp_path);
+        }
+        result?
+    } else {
+        client
+            .submit_remote_url(
+                &job.request_payload.source.source_url,
+                &model_name,
+                &optional_payload,
+            )
+            .await
+            .map_err(|err| attach_paddle_runtime_error(job, err, "submit"))?
+    };
     run_paddle_poll_loop(
         deps,
         job,
@@ -216,23 +237,23 @@ fn log_paddle_unsupported_options(job: &mut JobRuntimeState) {
 /// 相同结果），且其异步接口没有缓存开关。彻底重跑（no_cache）时给上传字节
 /// 追加惰性 PDF 尾注释，使服务端视为新文件重新解析；返回临时副本路径，
 /// 提交完成后由调用方删除。
-fn prepare_paddle_submit_path(job: &mut JobRuntimeState, upload_path: &Path) -> (PathBuf, Option<PathBuf>) {
+fn prepare_paddle_submit_path(
+    job: &mut JobRuntimeState,
+    upload_path: &Path,
+) -> Result<(PathBuf, Option<PathBuf>)> {
     if !job.request_payload.ocr.no_cache {
-        return (upload_path.to_path_buf(), None);
+        return Ok((upload_path.to_path_buf(), None));
     }
     match build_cache_busted_upload_copy(upload_path) {
         Ok(temp_path) => {
             job.append_log(
                 "paddle provider note: no_cache enabled, submitting a cache-busted upload copy to bypass provider-side result reuse",
             );
-            (temp_path.clone(), Some(temp_path))
+            Ok((temp_path.clone(), Some(temp_path)))
         }
-        Err(err) => {
-            job.append_log(&format!(
-                "paddle provider note: failed to build cache-busted upload copy ({err}); submitting the original file"
-            ));
-            (upload_path.to_path_buf(), None)
-        }
+        Err(err) => Err(anyhow!(
+            "failed to build cache-busted upload copy for Paddle no_cache: {err}"
+        )),
     }
 }
 
@@ -243,7 +264,12 @@ fn build_cache_busted_upload_copy(upload_path: &Path) -> Result<PathBuf> {
         .map(|value| value.as_nanos())
         .unwrap_or_default();
     bytes.extend_from_slice(
-        format!("\n% retain-pdf no-cache bust {}-{}\n", std::process::id(), unique).as_bytes(),
+        format!(
+            "\n% retain-pdf no-cache bust {}-{}\n",
+            std::process::id(),
+            unique
+        )
+        .as_bytes(),
     );
     let temp_path = std::env::temp_dir().join(format!(
         "retainpdf-paddle-nocache-{}-{}.pdf",

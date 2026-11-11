@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 import tempfile
 import time
+from contextlib import nullcontext
 from pathlib import Path
 
 
@@ -244,6 +245,58 @@ def test_domain_context_cache_round_trip() -> None:
         domain_context.save_domain_context(output_dir, payload)
         loaded = domain_context.load_cached_domain_context(output_dir)
         assert loaded == payload
+
+
+def test_domain_context_bypass_deletes_cached_records_and_reinfers(monkeypatch, tmp_path) -> None:
+    from foundation.config import paths
+
+    monkeypatch.setattr(paths, "DOMAIN_CONTEXT_CACHE_DIR", tmp_path / "shared-cache")
+    preview_text = "A document about fluid mechanics"
+    model = "deepseek-v4-flash"
+    shared_path = domain_context._shared_domain_context_path(preview_text, model=model)
+    shared_path.parent.mkdir(parents=True, exist_ok=True)
+    shared_path.write_text(
+        '{"domain":"old","summary":"old cache","translation_guidance":"old","preview_text":"A document about fluid mechanics"}',
+        encoding="utf-8",
+    )
+    domain_context.save_domain_context(
+        tmp_path,
+        {
+            "domain": "old",
+            "summary": "old cache",
+            "translation_guidance": "old",
+            "preview_text": preview_text,
+        },
+    )
+    calls: list[dict] = []
+    monkeypatch.setattr(domain_context, "request_chat_content", lambda *args, **kwargs: calls.append(kwargs) or "{}")
+    monkeypatch.setattr(
+        domain_context,
+        "parse_domain_context_response",
+        lambda _content, *, preview_text: {
+            "domain": "new",
+            "summary": "new inference",
+            "translation_guidance": "new",
+            "preview_text": preview_text,
+        },
+    )
+    monkeypatch.setattr(domain_context, "emit_stage_transition", lambda **_: None)
+    monkeypatch.setattr(domain_context, "emit_stage_progress", lambda **_: None)
+    monkeypatch.setattr(domain_context, "_domain_context_deadline", lambda _timeout: nullcontext())
+
+    result = domain_context.infer_domain_context_from_preview_text(
+        preview_text=preview_text,
+        api_key="test-key",
+        model=model,
+        base_url="https://example.test/v1",
+        output_dir=tmp_path,
+        bypass_cache=True,
+    )
+
+    assert result["domain"] == "new"
+    assert len(calls) == 1
+    assert not shared_path.exists()
+    assert domain_context.load_cached_domain_context(tmp_path)["domain"] == "new"
 
 
 def test_domain_context_raw_response_round_trip() -> None:

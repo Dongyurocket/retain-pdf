@@ -55,8 +55,8 @@ RetainPDF 从设计之初就致力于解决各类 PDF 的保留排版翻译问�
   - 桌面端与 Web 端共享该配置体系。
 
 - **🔄 彻底重跑与缓存治理**
-  - 状态卡重试菜单新增「彻底重跑」：从 OCR 阶段重新执行，并完全绕过 OCR 与翻译缓存（bypass 期间缓存不读、不写，不污染既有缓存内容），用于排查缓存或上游 OCR 异常导致的坏结果。
-  - 针对 PaddleOCR 服务端按上传内容指纹复用解析结果的行为，彻底重跑时自动提交追加惰性尾注释的上传副本，迫使服务端真实重新解析；本地源文件与既有缓存不受影响。
+  - 状态卡「彻底重跑」从原始上传重新执行 OCR、翻译和渲染；OCR 使用 provider 的 no-cache 能力，PaddleOCR 通过独立上传副本绕过服务端内容指纹复用。
+  - 翻译侧逐条删除本次输入对应的单元缓存和领域上下文缓存，再重新调用模型；新结果不写回这些缓存。重跑创建独立 job，旧任务产物与事件记录保留为历史。
 
 - **📚 术语表（Glossary）批量导入与管理（设置 → 词表）**
   - 导入面板支持直接选择或拖拽本地 `.csv` 与 `.txt` 文件导入。
@@ -135,9 +135,9 @@ RetainPDF 从设计之初就致力于解决各类 PDF 的保留排版翻译问�
 
 ### 桌面端下载（推荐日常使用）
 
-前往 [GitHub Releases](https://github.com/Dongyurocket/retain-pdf/releases/latest) 下载最新安装包（当前版本 **v4.3.12**）：
+前往 [GitHub Releases](https://github.com/Dongyurocket/retain-pdf/releases/latest) 下载最新安装包（当前版本 **v4.3.13**）：
 
-- **Windows**：`RetainPDF-Windows-4.3.12-Setup.exe`（NSIS 安装包，Windows 10/11 x64）
+- **Windows**：`RetainPDF-Windows-4.3.13-Setup.exe`（NSIS 安装包，Windows 10/11 x64）
 
 本项目只发布 Windows 桌面端，不提供 macOS / Linux 安装包。
 

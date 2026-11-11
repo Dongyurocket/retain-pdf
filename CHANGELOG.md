@@ -14,6 +14,21 @@
 - `docker/delivery/docker-compose.yml` 默认改为本地构建（镜像名 `retainpdf-app:latest` / `retainpdf-web:latest`），不再指向上游 `wxyhgk/retainpdf-*` 镜像；新增 `docker/build-images.sh`，只构建不推送，支持自定义 tag 与 `PLATFORMS` 交叉构建。
 - `README.md` 与 `docker/delivery/README.md` 的容器部署说明改为自行构建，移除 `docker compose pull` 与切换上游镜像版本的步骤；`docker/delivery/README.md` 的 clone 地址改为本 Fork。
 
+## [v4.3.13] - 2026-11-12
+
+### 修复
+
+- 修复状态卡「彻底重跑」只重新提交 OCR、但翻译阶段仍复用旧缓存的问题：强制重跑现在会删除本次输入对应的翻译单元缓存和领域上下文记录，并真正重新执行翻译。
+- 修复 PaddleOCR 远程 URL 重跑仍可能命中 provider 内容缓存的问题：强制重跑时先下载源 PDF，再通过唯一上传副本提交；无法生成副本时直接失败，避免静默提交原文件。
+- 保留旧任务产物与事件记录作为历史，同时让新重跑任务使用独立的 OCR、翻译和渲染产物目录。
+
+### 验证
+
+- 本次相关 Python 测试 38 项通过，前端测试 771 项通过，`npm run typecheck` 通过。
+- Rust 阶段重试、Paddle 缓存规避副本及强制重跑契约测试通过；Rust 全库测试存在 4 项与本次改动无关的既有 Windows/Python 进程环境失败。
+
+[v4.3.13]: https://github.com/Dongyurocket/retain-pdf/releases/tag/v4.3.13
+
 ## [v4.3.12] - 2026-11-11
 
 ### 修复

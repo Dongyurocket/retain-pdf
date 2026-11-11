@@ -123,7 +123,7 @@ def test_translation_cache_sanitizes_reasoning_leak_on_load(monkeypatch, tmp_pat
     assert healed["translated_text"] == "时间有序响应必须与推迟响应函数加以区分，"
 
 
-def test_translation_cache_bypass_skips_read_and_write(monkeypatch, tmp_path) -> None:
+def test_translation_cache_bypass_deletes_record_and_skips_write(monkeypatch, tmp_path) -> None:
     monkeypatch.setattr(cache.paths, "TRANSLATION_UNIT_CACHE_DIR", tmp_path)
     item = {
         "item_id": "p200-b001",
@@ -143,6 +143,13 @@ def test_translation_cache_bypass_skips_read_and_write(monkeypatch, tmp_path) ->
         bypass_cache=True,
     ) == {}
 
+    cache_key = cache.cache_key_for_item(
+        item,
+        model="deepseek-v4-flash",
+        base_url="https://api.deepseek.com/v1",
+    )
+    assert not (tmp_path / cache_key[:2] / f"{cache_key}.json").exists()
+
     cache.store_cached_translation(
         item,
         {"decision": "translate", "translated_text": "强制重跑新译文"},
@@ -155,7 +162,7 @@ def test_translation_cache_bypass_skips_read_and_write(monkeypatch, tmp_path) ->
         model="deepseek-v4-flash",
         base_url="https://api.deepseek.com/v1",
     )
-    assert result["translated_text"] == "旧译文"
+    assert result == {}
 
 
 def test_translation_batch_cache_bypass_skips_all_items(monkeypatch, tmp_path) -> None:

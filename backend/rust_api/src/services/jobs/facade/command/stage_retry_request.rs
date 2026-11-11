@@ -73,3 +73,33 @@ fn require_artifact(value: Option<&String>, name: &str) -> Result<(), AppError> 
         "source job missing required artifact: {name}"
     )))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::build_retry_request;
+    use crate::models::api::RetryStageKind;
+    use crate::models::domain::{CreateJobInput, JobSnapshot, WorkflowKind};
+
+    #[test]
+    fn forced_ocr_retry_disables_ocr_and_translation_cache_reuse() {
+        let mut input = CreateJobInput::default();
+        input.workflow = WorkflowKind::Book;
+        input.source.source_url = "https://example.test/source.pdf".to_string();
+        let source = JobSnapshot::new(
+            "job-force-rerun-source".to_string(),
+            input,
+            vec!["noop".to_string()],
+        );
+
+        let request = build_retry_request(&source, &RetryStageKind::Ocr, true)
+            .expect("forced OCR retry request");
+
+        assert_eq!(request.workflow, WorkflowKind::Book);
+        assert_eq!(request.source.source_url, "https://example.test/source.pdf");
+        assert!(request.ocr.no_cache);
+        assert_eq!(
+            request.translation.options.get("bypass_cache"),
+            Some(&serde_json::Value::Bool(true))
+        );
+    }
+}

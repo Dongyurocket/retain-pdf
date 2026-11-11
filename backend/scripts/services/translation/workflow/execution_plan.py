@@ -54,6 +54,7 @@ def build_translation_execution_plan(request: TranslationExecutionRequest) -> Tr
         output_dir=request.output_dir,
         rule_profile_name=request.rule_profile_name,
         custom_rules_text=request.custom_rules_text,
+        force_full_reprocess=request.force_full_reprocess,
     )
     if policy_config.domain_context.get("domain") or policy_config.domain_context.get("translation_guidance"):
         print(

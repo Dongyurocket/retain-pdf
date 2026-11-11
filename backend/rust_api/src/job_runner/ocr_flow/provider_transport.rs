@@ -180,6 +180,7 @@ fn execute_paddle_remote_transport<'a>(
             job,
             &client,
             &workspace.provider_result_json_path,
+            &workspace.source_dir,
             &workspace.job_paths.root,
             parent_job_id,
         )

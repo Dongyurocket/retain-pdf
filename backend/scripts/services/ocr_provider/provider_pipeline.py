@@ -445,6 +445,9 @@ def main() -> None:
                 stage="provider",
                 stage_spec_schema_version=stage_spec_schema_version,
             ),
+            force_full_reprocess=bool(
+                spec.translation.options.get("bypass_cache", False)
+            ),
             render_visual_prewarm_handle=render_visual_prewarm_handle,
         )
         summary_path = job_dirs.artifacts_dir / PIPELINE_SUMMARY_FILE_NAME

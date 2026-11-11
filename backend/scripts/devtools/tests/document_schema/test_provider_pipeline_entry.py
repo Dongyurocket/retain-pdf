@@ -60,13 +60,14 @@ def test_provider_pipeline_dispatches_to_paddle_and_writes_standard_artifacts(
                     "language": "ch",
                     "page_ranges": "",
                     "data_id": "",
-                    "no_cache": False,
+                    "no_cache": True,
                     "cache_tolerance": 900,
                     "extra_formats": "",
                     "poll_interval": 1,
                     "poll_timeout": 5,
                 },
                 "translation": {
+                    "options": {"bypass_cache": True},
                     "start_page": 0,
                     "end_page": -1,
                     "batch_size": 8,
@@ -200,7 +201,10 @@ def test_provider_pipeline_dispatches_to_paddle_and_writes_standard_artifacts(
             },
         )
 
+    book_pipeline_calls: list[dict[str, object]] = []
+
     def _fake_run_book_pipeline(**kwargs: object) -> dict:
+        book_pipeline_calls.append(kwargs)
         output_pdf_path = Path(str(kwargs["output_pdf_path"]))
         output_pdf_path.parent.mkdir(parents=True, exist_ok=True)
         output_pdf_path.write_bytes(b"%PDF-1.4\n")
@@ -241,6 +245,7 @@ def test_provider_pipeline_dispatches_to_paddle_and_writes_standard_artifacts(
         )
 
     monkeypatch.setattr(provider_pipeline, "get_paddle_token", lambda **_: "paddle-token")
+    monkeypatch.setattr(provider_pipeline, "get_api_key", lambda *_args, **_kwargs: "api-key")
     monkeypatch.setattr(provider_pipeline, "submit_local_paddle_file", lambda **_: ("job-1", "trace-1"))
     def _fake_poll_paddle_until_done(**kwargs: object) -> tuple[dict, str]:
         progress_callback = kwargs.get("progress_callback")
@@ -294,6 +299,8 @@ def test_provider_pipeline_dispatches_to_paddle_and_writes_standard_artifacts(
 
     monkeypatch.setattr(sys, "argv", ["run_provider_case.py", "--spec", str(spec_path)])
     provider_pipeline.main()
+
+    assert book_pipeline_calls[0]["force_full_reprocess"] is True
 
     normalized_json_path = job_dirs.ocr_dir / "normalized" / "document.v1.json"
     normalized_report_path = job_dirs.ocr_dir / "normalized" / "document.v1.report.json"

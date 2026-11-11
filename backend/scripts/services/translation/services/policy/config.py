@@ -203,6 +203,7 @@ def build_book_translation_policy_config(
     rule_profile_name: str = DEFAULT_RULE_PROFILE_NAME,
     custom_rules_text: str = "",
     enable_domain_inference: bool | None = None,
+    force_full_reprocess: bool = False,
 ) -> TranslationPolicyConfig:
     sci_cutoff_page_idx = None
     sci_cutoff_block_idx = None
@@ -221,6 +222,7 @@ def build_book_translation_policy_config(
                 base_url=base_url,
                 preview_text_fallback=preview_text,
                 output_dir=output_dir,
+                bypass_cache=force_full_reprocess,
             )
         except Exception as exc:
             print(f"sci domain inference skipped: {type(exc).__name__}: {exc}", flush=True)

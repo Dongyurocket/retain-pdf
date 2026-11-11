@@ -183,8 +183,6 @@ def load_cached_translation(
     target_language_name: str = "简体中文",
     bypass_cache: bool = False,
 ) -> dict[str, str]:
-    if bypass_cache:
-        return {}
     cache_key = cache_key_for_item(
         item,
         model=model,
@@ -195,6 +193,9 @@ def load_cached_translation(
         target_language_name=target_language_name,
     )
     path = _cache_path(cache_key)
+    if bypass_cache:
+        path.unlink(missing_ok=True)
+        return {}
     if not path.exists():
         return {}
     try:

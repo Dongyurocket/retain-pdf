@@ -168,17 +168,23 @@ def infer_domain_context_from_preview_text(
     model: str,
     base_url: str,
     output_dir: Path | None = None,
+    bypass_cache: bool = False,
 ) -> dict[str, str]:
     if not preview_text:
         result = _empty_domain_context("")
         if output_dir is not None:
             save_domain_context(output_dir, result)
         return result
-    cached = load_cached_domain_context(output_dir)
+    if bypass_cache and output_dir is not None:
+        (output_dir / DOMAIN_CONTEXT_FILE_NAME).unlink(missing_ok=True)
+    cached = None if bypass_cache else load_cached_domain_context(output_dir)
     if cached is not None and str(cached.get("preview_text", "") or "").strip() == preview_text.strip():
         print("domain-infer: cache hit", flush=True)
         return cached
-    shared_cached = _load_shared_domain_context(preview_text, model=model)
+    shared_path = _shared_domain_context_path(preview_text, model=model)
+    if bypass_cache:
+        shared_path.unlink(missing_ok=True)
+    shared_cached = None if bypass_cache else _load_shared_domain_context(preview_text, model=model)
     if shared_cached is not None:
         print("domain-infer: shared cache hit", flush=True)
         if output_dir is not None:
@@ -244,7 +250,8 @@ def infer_domain_context_from_preview_text(
         raise
     if output_dir is not None:
         save_domain_context(output_dir, result)
-    _store_shared_domain_context(preview_text, model=model, context=result)
+    if not bypass_cache:
+        _store_shared_domain_context(preview_text, model=model, context=result)
     emit_stage_progress(
         stage="domain_inference",
         substage="domain_inference",
@@ -268,6 +275,7 @@ def infer_domain_context(
     base_url: str,
     preview_text_fallback: str = "",
     output_dir: Path | None = None,
+    bypass_cache: bool = False,
 ) -> dict[str, str]:
     preview_text = extract_pdf_preview_text(source_pdf_path, max_pages=2) if source_pdf_path is not None else ""
     if not preview_text:
@@ -278,6 +286,7 @@ def infer_domain_context(
         model=model,
         base_url=base_url,
         output_dir=output_dir,
+        bypass_cache=bypass_cache,
     )
 
 

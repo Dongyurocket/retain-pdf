@@ -9,6 +9,7 @@ import fitz
 REPO_SCRIPTS_ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(REPO_SCRIPTS_ROOT))
 
+from services.ocr_provider import paddle_runner
 from services.ocr_provider.paddle_runner import run_paddle_to_job_dir
 
 
@@ -127,3 +128,24 @@ def test_paddle_no_cache_remote_url_falls_back_to_busted_local_upload(tmp_path: 
 
     assert remote_calls == [], "no_cache must not resubmit the same remote URL"
     assert b"retain-pdf no-cache bust" in captured["submit_bytes"]
+
+
+def test_paddle_no_cache_fails_closed_when_cache_busted_copy_cannot_be_built(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    args = _make_args(tmp_path, file_path="", no_cache=True)
+    source_pdf = tmp_path / "job" / "source" / "book.pdf"
+    _write_source_pdf(source_pdf)
+    args.file_path = str(source_pdf)
+    submitted: list[Path] = []
+    monkeypatch.setattr(paddle_runner, "_build_cache_busted_upload_copy", lambda _path: None)
+
+    try:
+        _run_with_fakes(args, submit_local=lambda **kwargs: submitted.append(Path(kwargs["file_path"])), submit_remote=None)
+    except RuntimeError as exc:
+        assert "failed to build cache-busted upload copy" in str(exc)
+    else:
+        raise AssertionError("no_cache must fail instead of submitting the original PDF")
+
+    assert submitted == []

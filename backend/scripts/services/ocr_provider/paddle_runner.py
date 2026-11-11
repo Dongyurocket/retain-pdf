@@ -152,7 +152,9 @@ def run_paddle_to_job_dir(
         source_pdf_path = download_source_pdf(str(args.file_url).strip(), source_dir)
         if getattr(args, "no_cache", False):
             cache_bust_path = _build_cache_busted_upload_copy(source_pdf_path)
-            submit_path = cache_bust_path or source_pdf_path
+            if cache_bust_path is None:
+                raise RuntimeError("failed to build cache-busted upload copy for Paddle no_cache")
+            submit_path = cache_bust_path
             print("paddle: no_cache enabled, submitting a cache-busted upload copy to bypass provider-side result reuse", flush=True)
             try:
                 task_id, trace_id = submit_local(
@@ -179,9 +181,10 @@ def run_paddle_to_job_dir(
         cache_bust_path = None
         if getattr(args, "no_cache", False):
             cache_bust_path = _build_cache_busted_upload_copy(source_pdf_path)
-            if cache_bust_path is not None:
-                submit_path = cache_bust_path
-                print("paddle: no_cache enabled, submitting a cache-busted upload copy to bypass provider-side result reuse", flush=True)
+            if cache_bust_path is None:
+                raise RuntimeError("failed to build cache-busted upload copy for Paddle no_cache")
+            submit_path = cache_bust_path
+            print("paddle: no_cache enabled, submitting a cache-busted upload copy to bypass provider-side result reuse", flush=True)
         try:
             task_id, trace_id = submit_local(
                 token=paddle_token,
