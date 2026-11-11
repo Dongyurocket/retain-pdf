@@ -22,8 +22,8 @@
     "sync-frontend": "npm --prefix ../frontend run build && node scripts/prepare-app.mjs --frontend-only",
     "verify-frontend-sync": "npm run sync-frontend && npm run smoke:frontend-desktop",
     "prepare-app": "npm --prefix ../frontend run build && node scripts/prepare-app.mjs",
-    "dist:win32": "npm run prepare-app && electron-builder --win portable --x64 --config.directories.output=win",
-    "dist:win32-installer": "npm run prepare-app && electron-builder --win nsis --x64 --config.directories.output=win"
+    "dist:win32": "npm run prepare-app && electron-builder --publish never --win portable --x64 --config.directories.output=win",
+    "dist:win32-installer": "npm run prepare-app && electron-builder --publish never --win nsis --x64 --config.directories.output=win"
   },
   "devDependencies": {
     "electron": "^33.3.1",
