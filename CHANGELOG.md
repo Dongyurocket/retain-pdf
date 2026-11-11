@@ -5,6 +5,18 @@
 
 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [SemVer](https://semver.org/lang/zh-CN/)。
 
+## [v4.3.12] - 2026-11-11
+
+### 修复
+
+- 自定义 OpenAI 兼容翻译接口不再触发 API 连通性检测与余额查询：此前每次提交都会先探测 `/models` 再请求 DeepSeek 官方余额；第三方网关不支持这些端点时会被「无法确认 DeepSeek 余额」反复阻塞。现在按实际生效的 Base URL / 完整 URL 判定，仅 `api.deepseek.com` 官方域名保留余额校验，自定义接口直接放行并提示「余额需自行确认」。
+
+### 验证
+
+- 前端完整测试 771/771 通过，`npm run typecheck` 0 错误。
+
+[v4.3.12]: https://github.com/Dongyurocket/retain-pdf/releases/tag/v4.3.12
+
 ## [v4.3.11] - 2026-09-29
 
 ### 修复

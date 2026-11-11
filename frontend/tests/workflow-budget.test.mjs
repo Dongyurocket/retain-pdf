@@ -21,3 +21,19 @@ test("translation budget blocks DeepSeek submission when estimated cost exceeds 
   assert.equal(budget.message, "预计 ¥8.79 · 533 页 · 余额 ¥1.00");
   assert.equal(budget.topUpUrl, "https://platform.deepseek.com/top_up");
 });
+
+test("translation budget marks custom provider balance as self-managed and never blocks", () => {
+  const budget = resolveTranslationBudgetState({
+    pageRanges: "",
+    uploadedPageCount: 533,
+    balanceCny: null,
+    balanceChecked: false,
+    balanceUnsupported: true,
+    needsTranslation: true,
+  });
+
+  assert.equal(budget.visible, true);
+  assert.equal(budget.blocking, false);
+  assert.equal(budget.balanceChecked, false);
+  assert.equal(budget.message, "预计 ¥8.79 · 533 页 · 余额需自行确认");
+});

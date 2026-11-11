@@ -106,7 +106,7 @@ export function DeepSeekPanel() {
           onInput={() => handlers?.resetDeepSeekValidation?.()}
         />
         <span className="credential-option-hint muted">
-          OpenAI 兼容基础地址，默认自动向该地址拼接 /chat/completions
+          OpenAI 兼容基础地址，默认自动向该地址拼接 /chat/completions；自定义地址不查询 DeepSeek 官方余额
         </span>
       </label>
 

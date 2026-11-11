@@ -9,6 +9,7 @@ import {
   normalizeOcrOptionsMap,
   normalizeOcrProvider,
   OCR_PROVIDER_DEFINITIONS,
+  isOfficialDeepSeekEndpoint,
 } from "../src/js/config/providers.js";
 
 test("paddle stays the default ocr provider", () => {
@@ -66,6 +67,16 @@ test("normalizeOcrOptions merges user values over defaults and drops unknown key
   });
   // 非对象输入 / 未知 provider 一律回落默认
   assert.deepEqual(normalizeOcrOptions("nope", null), defaultOcrOptions("paddle"));
+});
+
+test("isOfficialDeepSeekEndpoint only accepts DeepSeek official hosts", () => {
+  assert.equal(isOfficialDeepSeekEndpoint(""), true, "空值按默认官方地址处理");
+  assert.equal(isOfficialDeepSeekEndpoint("https://api.deepseek.com/v1"), true);
+  assert.equal(isOfficialDeepSeekEndpoint("https://api.deepseek.com"), true);
+  assert.equal(isOfficialDeepSeekEndpoint("https://api.deepseek.com.cn/v1"), false);
+  assert.equal(isOfficialDeepSeekEndpoint("https://api.siliconflow.cn/v1"), false);
+  assert.equal(isOfficialDeepSeekEndpoint("https://gateway.example.com/api.deepseek.com"), false);
+  assert.equal(isOfficialDeepSeekEndpoint("api.deepseek.com/v1"), true, "无 scheme 时按官方域名处理");
 });
 
 test("normalizeOcrOptionsMap fills every registered provider", () => {

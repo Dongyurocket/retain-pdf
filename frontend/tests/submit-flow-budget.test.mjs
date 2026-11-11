@@ -14,6 +14,30 @@ function createBudgetPort(budget) {
   return () => budget;
 }
 
+test("ensureDeepSeekBudgetReady skips every network check for custom provider", async () => {
+  let refreshCalled = false;
+  const messages = [];
+  const allowed = await ensureDeepSeekBudgetReady({
+    workflow: "book",
+    workflowNeedsUpload: () => true,
+    currentBudgetState: createBudgetPort({
+      visible: true,
+      blocking: false,
+      balanceChecked: false,
+      balanceUnsupported: true,
+    }),
+    refreshDeepSeekBalance: async () => {
+      refreshCalled = true;
+      return { ok: true, status: "available" };
+    },
+    setText: (id, text) => messages.push([id, text]),
+  });
+
+  assert.equal(allowed, true);
+  assert.equal(refreshCalled, false, "自定义接口不应触发任何余额/连通性探测");
+  assert.deepEqual(messages.at(-1), ["error-box", "当前为自定义 API 接口，已跳过余额检测，请自行确认额度。"]);
+});
+
 test("ensureDeepSeekBudgetReady allows custom provider with unsupported balance query", async () => {
   const messages = [];
   const allowed = await ensureDeepSeekBudgetReady({

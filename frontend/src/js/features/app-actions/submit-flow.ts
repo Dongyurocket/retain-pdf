@@ -196,6 +196,12 @@ export async function ensureDeepSeekBudgetReady({
   if (!needsDeepSeekBudgetCheck({ workflow, workflowNeedsUpload, currentBudgetState })) {
     return true;
   }
+  const initialBudget = asBudgetState(currentBudgetState?.());
+  if (initialBudget?.balanceUnsupported) {
+    // 自定义 OpenAI 兼容接口：余额由服务商自行管理，提交前不再做任何联网探测。
+    setText?.("error-box", "当前为自定义 API 接口，已跳过余额检测，请自行确认额度。");
+    return true;
+  }
   setText("error-box", "正在检测 DeepSeek 余额…");
   let balanceResult: DeepSeekBalanceCheckResult | null | undefined = null;
   try {
@@ -222,7 +228,7 @@ export async function ensureDeepSeekBudgetReady({
     return false;
   }
   if (budget?.balanceUnsupported || balanceResult?.status === "unsupported_provider") {
-    setText("error-box", "当前接口不支持余额查询，请确认余额充足后提交。");
+    setText("error-box", "当前接口不支持余额查询，已跳过检测，请自行确认额度。");
     return true;
   }
   if (budget?.visible && !budget.balanceChecked) {

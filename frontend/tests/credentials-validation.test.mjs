@@ -214,6 +214,45 @@ test("handleBrowserDeepSeekValidate writes balance through credentials state por
   assert.deepEqual(messages.at(-1), ["DeepSeek 可用，余额 CNY 3.25", "valid"]);
 });
 
+test("handleBrowserDeepSeekValidate skips connectivity and balance for custom endpoint", async () => {
+  const calls = [];
+  const messages = [];
+  const result = await handleBrowserDeepSeekValidate({
+    apiPrefix: "/custom/api",
+    defaultModelApiKey: () => "sk-test",
+    modelEndpoint: "https://api.siliconflow.cn/v1",
+    validateDeepSeekToken: async () => {
+      calls.push("validate");
+      return { ok: true, status: 200 };
+    },
+    queryDeepSeekBalance: async () => {
+      calls.push("balance");
+      return { ok: true };
+    },
+    onBalanceChange: () => calls.push("balance-change"),
+    credentialsStatePort: {
+      getCredentials: () => ({ modelApiKey: "sk-test" }),
+      resetDeepSeekBalance: () => calls.push("state-reset"),
+      setDeepSeekBalance: (balanceCny, checked, unsupported) => calls.push(["state-set", balanceCny, checked, unsupported]),
+    },
+    viewPort: {
+      elements: () => ({
+        apiKeyInput: createCredentialNode({ value: "sk-test" }),
+        modelBaseUrlInput: createCredentialNode({ value: "" }),
+      }),
+      setTopUpVisible: () => calls.push("top-up"),
+      setValidationMessage: (message, tone) => messages.push([message, tone]),
+    },
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.status, "unsupported_provider");
+  assert.equal(calls.includes("validate"), false, "自定义接口不应探测 /models");
+  assert.equal(calls.includes("balance"), false, "自定义接口不应请求余额接口");
+  assert.ok(calls.some((call) => Array.isArray(call) && call[0] === "state-set" && call[2] === false && call[3] === true));
+  assert.deepEqual(messages.at(-1), ["自定义接口已跳过 API 检测与余额查询，请自行确认额度", "valid"]);
+});
+
 test("credentials DOM contract centralizes hidden inputs and browser dialog ids", () => {
   assert.equal(CREDENTIAL_DOM_IDS.hidden.ocrProvider, "ocr_provider");
   assert.equal(CREDENTIAL_DOM_IDS.hidden.modelApiKey, "api_key");

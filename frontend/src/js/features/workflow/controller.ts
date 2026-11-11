@@ -23,6 +23,7 @@ import {
 import { resolveSubmitControlState } from "./submit-controls.js";
 import { resolveTranslationBudgetState } from "./budget.js";
 import { defaultWorkflowConfigPort } from "./config-port.js";
+import { isOfficialDeepSeekEndpoint } from "../../config/providers.js";
 
 export interface WorkflowSubmitValues {
   ocrProvider?: string;
@@ -280,12 +281,19 @@ export function mountWorkflowFeature({
   function currentBudgetState(workflow = currentWorkflow()) {
     const uploadState = getUploadState();
     const balanceState = getDeepSeekBalanceState();
+    // 自定义 OpenAI 兼容接口不做余额校验：余额接口是 DeepSeek 官方私有接口，
+    // 中转/自建网关通常既无 /user/balance，也可能不支持 /models 探测。
+    const savedDeveloperConfig = getDeveloperConfig?.() || {};
+    const configuredEndpoint = `${savedDeveloperConfig.url || ""}`.trim()
+      || `${developerConfigWithDefaults().baseUrl || ""}`.trim();
+    const balanceUnsupported = Boolean(balanceState.balanceUnsupported)
+      || !isOfficialDeepSeekEndpoint(configuredEndpoint);
     return resolveTranslationBudgetState({
       pageRanges: currentPageRanges(),
       uploadedPageCount: uploadState.uploadedPageCount,
       balanceCny: balanceState.balanceCny,
       balanceChecked: balanceState.balanceChecked,
-      balanceUnsupported: balanceState.balanceUnsupported,
+      balanceUnsupported,
       needsTranslation: workflowNeedsUpload(workflow) && workflowUsesTranslation(workflow) && Boolean(uploadState.uploadId),
     });
   }

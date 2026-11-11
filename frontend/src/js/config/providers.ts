@@ -108,6 +108,24 @@ export const OCR_PROVIDER_DEFINITIONS = [
   },
 ];
 
+/**
+ * 余额查询是 DeepSeek 官方 API 的私有接口；OpenAI 兼容中转/自建网关通常没有
+ * 对应端点，甚至不实现 GET /models。只有官方域名才应触发余额校验与拦截。
+ * 空值表示未显式配置，仍按默认官方地址处理。
+ */
+export function isOfficialDeepSeekEndpoint(value: unknown) {
+  const raw = `${value ?? ""}`.trim();
+  if (!raw) {
+    return true;
+  }
+  try {
+    const host = new URL(raw).hostname.toLowerCase();
+    return host === "api.deepseek.com" || host.endsWith(".api.deepseek.com");
+  } catch {
+    return /^api\.deepseek\.com([/:]|$)/i.test(raw);
+  }
+}
+
 export const TRANSLATION_PROVIDER_DEFINITION = {
   id: "deepseek",
   label: "DeepSeek",

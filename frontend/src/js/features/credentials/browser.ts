@@ -42,6 +42,7 @@ export interface CredentialDialogElements {
   apiKeyInput?: HTMLInputElement | null;
   modelBaseUrlInput?: HTMLInputElement | null;
   modelNameInput?: HTMLInputElement | null;
+  modelUrlInput?: HTMLInputElement | null;
   mathModeSelect?: HTMLSelectElement | null;
 }
 
@@ -229,6 +230,34 @@ export function mountBrowserCredentialsFeature({
     return (credentialsStatePort.getCredentials?.() || readHiddenCredentialInputs()) as CredentialsFields;
   }
 
+  /**
+   * 余额检测必须基于“真实生效的翻译端点”，不能只读设置弹窗 DOM：
+   * 弹窗未挂载时输入框为 null，会被后端当作空 base_url 回落到 DeepSeek 官方地址，
+   * 从而拿第三方 Key 去查官方余额。这里按 完整 URL → Base URL → 已保存任务选项 →
+   * 运行时默认值 的顺序解析，保证自定义接口在设置未打开时也能被识别。
+   */
+  function resolveModelEndpoint() {
+    const elements = deepSeekViewPort.elements?.() || {};
+    const fromFullUrl = `${elements.modelUrlInput?.value || ""}`.trim();
+    if (fromFullUrl) {
+      return fromFullUrl;
+    }
+    const fromBaseUrl = `${elements.modelBaseUrlInput?.value || ""}`.trim();
+    if (fromBaseUrl) {
+      return fromBaseUrl;
+    }
+    const taskOptions = (getTaskOptions?.() || {}) as Record<string, unknown>;
+    const savedFullUrl = `${taskOptions.url || ""}`.trim();
+    if (savedFullUrl) {
+      return savedFullUrl;
+    }
+    const savedBaseUrl = `${taskOptions.baseUrl || ""}`.trim();
+    if (savedBaseUrl) {
+      return savedBaseUrl;
+    }
+    return `${defaultModelBaseUrl?.() || ""}`.trim();
+  }
+
   function syncBrowserDialogFromCredentialState() {
     syncCredentialDialogFields({
       credentials: readCurrentCredentials(),
@@ -366,6 +395,7 @@ export function mountBrowserCredentialsFeature({
       credentialsStatePort,
       legacyRuntimePort,
       viewPort: deepSeekViewPort,
+      modelEndpoint: resolveModelEndpoint(),
     });
   }
 
@@ -381,6 +411,7 @@ export function mountBrowserCredentialsFeature({
       credentialsStatePort,
       legacyRuntimePort,
       viewPort: deepSeekViewPort,
+      modelEndpoint: resolveModelEndpoint(),
     });
   }
 

@@ -1,4 +1,7 @@
-import { TRANSLATION_PROVIDER_DEFINITION } from "../../config/providers.js";
+import {
+  TRANSLATION_PROVIDER_DEFINITION,
+  isOfficialDeepSeekEndpoint,
+} from "../../config/providers.js";
 import {
   runDeepSeekBalanceCheck,
   runDeepSeekConnectivityCheck,
@@ -27,23 +30,38 @@ export async function handleBrowserDeepSeekValidate({
   silent = false,
   credentialsStatePort = defaultCredentialsStatePort,
   viewPort,
+  modelEndpoint = "",
 }: any) {
+  const elements = viewPort.elements?.() || {};
   const {
     apiKeyInput,
     modelBaseUrlInput,
-  } = viewPort.elements();
+  } = elements;
   const storedCredentials = credentialsStatePort.getCredentials?.() || {};
   const modelApiKey = apiKeyInput?.value?.trim() || storedCredentials.modelApiKey || defaultModelApiKey?.() || "";
   if (apiKeyInput && !apiKeyInput.value && modelApiKey) {
     apiKeyInput.value = modelApiKey;
   }
-  const baseUrl = modelBaseUrlInput?.value?.trim() || "";
+  const baseUrl = `${modelEndpoint || modelBaseUrlInput?.value?.trim() || ""}`.trim();
   credentialsStatePort.resetDeepSeekBalance?.();
   onBalanceChange?.();
   if (!modelApiKey) {
     return { ok: false, status: "missing_key" };
   }
   viewPort.setTopUpVisible(false);
+  if (!isOfficialDeepSeekEndpoint(baseUrl)) {
+    // 非官方接口：不做 /models 连通性探测，也不请求官方余额端点。
+    credentialsStatePort.setDeepSeekBalance?.(null, false, true);
+    onBalanceChange?.();
+    if (!silent) {
+      viewPort.setValidationMessage("自定义接口已跳过 API 检测与余额查询，请自行确认额度", "valid");
+    }
+    return {
+      ok: true,
+      status: "unsupported_provider",
+      summary: "自定义接口无需余额检测",
+    };
+  }
   if (!silent) {
     viewPort.setValidationMessage("正在检测 DeepSeek 和余额…");
   }
